@@ -1,0 +1,95 @@
+﻿<div class="header">
+    <div class="header-item">
+        <h3>@Header</h3>
+    </div>
+
+    <div class="header-item">
+        <label for="filter-by-group">Filter by group:</label>
+        <select id="filter-by-group" @bind="GroupFilter" @bind:after="StartRefreshing">
+            <option value="">No Filtering</option>
+            @foreach (var g in GridDataProvider.Groups)
+            {
+                <option value="@g">@g</option>
+            }
+        </select>
+        <span class="option-hint">2 sec</span>
+    </div>
+
+    <div class="header-item">
+        <label for="sort-by">Sort by:</label>
+        <select id="sort-by" @bind="SortBy" @bind:after="StartRefreshing">
+            @foreach (var o in GridDataProvider.OrderBys)
+            {
+                <option value="@o.Name">@o.Name</option>
+            }
+        </select>
+        <span class="option-hint">7 sec</span>
+    </div>
+
+    @if (RequestTracker.IsLoading > 0)
+    {
+        <div class="header-item">
+            <div class="spinner"></div>
+            <div class="loading-indicator">Loading (@RequestTracker.IsLoading)...</div>
+        </div>
+    }
+
+</div>
+<div class="grid-content">
+    <div class="table-pane">
+        <h2>Data</h2>
+        <table class="main-table striped-table">
+            <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Group</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in Items)
+            {
+                <tr>
+                    <td>@row.Id</td>
+                    <td>@row.Name</td>
+                    <td>@row.Group</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="table-pane">
+        <h2>Request Log</h2>
+        <table class="log-table striped-table">
+            <thead>
+                <tr>
+                    <th>Start #</th>
+                    <th>End #</th>
+                    <th>Status</th>
+                    <th>Filter</th>
+                    <th>Sorting</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in RequestTracker.Log)
+                {
+                    <tr>
+                        <td>@row.Id</td>
+                        <td>@row.CompletionOrder</td>
+                        <td>
+                            <div class="status-row @(GetStatusStyle(row))">
+                                @row.Status
+                                @if (row.Status == RequestTracker.LogStatus.Started)
+                                {
+                                    <div class="spinner"></div>
+                                }
+                            </div>
+                        </td>
+                        <td>@row.Filter</td>
+                        <td>@row.Sorting</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

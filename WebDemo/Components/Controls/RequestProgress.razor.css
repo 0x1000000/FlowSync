@@ -1,0 +1,44 @@
+﻿.thread {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+button {
+   
+}
+
+.progress-container {
+    position: relative;
+    height: 46px;
+    width: 500px;
+    border: 1px solid var(--main-color);
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    margin: 0 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--main-color);
+    width: 0%;
+    transition: width .1s linear;
+}
+
+.result {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    margin: 2px;
+    margin-left: 20px;
+    font-size: 24px;
+    padding: 2px;
+    background-color: white;
+    opacity: 0.9;
+    box-shadow: 0px 0px 10px 20px white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+}

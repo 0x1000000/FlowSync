@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35828.75
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowSync", "FlowSync\FlowSync.csproj", "{D90A1455-B6C6-4B69-B064-CC42EC9C7CBF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDemo", "WebDemo\WebDemo.csproj", "{EF4AA7E4-F789-4BD4-B130-7003AA7A5AF7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowSyncTest", "FlowSyncTest\FlowSyncTest.csproj", "{D7D16E4D-8959-49E0-9B23-1C138ECB948E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D90A1455-B6C6-4B69-B064-CC42EC9C7CBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D90A1455-B6C6-4B69-B064-CC42EC9C7CBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D90A1455-B6C6-4B69-B064-CC42EC9C7CBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D90A1455-B6C6-4B69-B064-CC42EC9C7CBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF4AA7E4-F789-4BD4-B130-7003AA7A5AF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF4AA7E4-F789-4BD4-B130-7003AA7A5AF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF4AA7E4-F789-4BD4-B130-7003AA7A5AF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF4AA7E4-F789-4BD4-B130-7003AA7A5AF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7D16E4D-8959-49E0-9B23-1C138ECB948E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7D16E4D-8959-49E0-9B23-1C138ECB948E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7D16E4D-8959-49E0-9B23-1C138ECB948E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7D16E4D-8959-49E0-9B23-1C138ECB948E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6A8AA5B6-262A-41B0-89D2-929688034E83}
+	EndGlobalSection
+EndGlobal
