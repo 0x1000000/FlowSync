@@ -1,0 +1,168 @@
+/* /Controls/RequestProgress.razor.rz.scp.css */
+.thread[b-455bxp00qn] {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+button[b-455bxp00qn] {
+   
+}
+
+.progress-container[b-455bxp00qn] {
+    position: relative;
+    height: 46px;
+    width: 500px;
+    border: 1px solid var(--main-color);
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    margin: 0 10px;
+}
+
+.progress-bar[b-455bxp00qn] {
+    height: 100%;
+    background-color: var(--main-color);
+    width: 0%;
+    transition: width .1s linear;
+}
+
+.result[b-455bxp00qn] {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    margin: 2px;
+    margin-left: 20px;
+    font-size: 24px;
+    padding: 2px;
+    background-color: white;
+    opacity: 0.9;
+    box-shadow: 0px 0px 10px 20px white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+}
+/* /Layout/MainLayout.razor.rz.scp.css */
+.page[b-ze7zunoz9s] {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    width: 100%;
+}
+
+main[b-ze7zunoz9s] {
+    flex: 1 1 auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar[b-ze7zunoz9s] {
+    background: var(--background-1);
+}
+/* /Layout/NavMenu.razor.rz.scp.css */
+.link-wrapper[b-5bi986ernz] {
+    margin: 20px;
+}
+
+h3[b-5bi986ernz] {
+    text-align: center;
+}
+/* /Pages/Grid.razor.rz.scp.css */
+
+.header[b-clzpx3jucp] {
+    background-color: var(--background-1);
+    display: flex;
+    align-items: center;
+}
+
+select[b-clzpx3jucp] {
+    min-width: 150px;
+}
+
+.header-item[b-clzpx3jucp] {
+    margin: 0 20px;
+    display: flex;
+    align-items: center;
+}
+
+.header-item label[b-clzpx3jucp]{
+    margin-right: 10px;
+}
+
+.option-hint[b-clzpx3jucp] {
+    margin-left: 5px;
+    font-style: italic;
+}
+
+.loading-indicator[b-clzpx3jucp] {
+    margin-left: 10px;
+}
+
+.spinner[b-clzpx3jucp] {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border: 3px solid rgba(0,0,0,.1);
+    border-radius: 50%;
+    border-top-color: var(--main-color);
+    animation: spin-b-clzpx3jucp 1s ease-in-out infinite;
+}
+
+@keyframes spin-b-clzpx3jucp {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.grid-content[b-clzpx3jucp] {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+
+    overflow: hidden;
+}
+
+.table-pane[b-clzpx3jucp] {
+    margin: 0 20px;
+    overflow-y: auto;
+}
+
+.main-table[b-clzpx3jucp], .log-table[b-clzpx3jucp] {
+    width: auto;
+    min-width: 500px;
+}
+
+.table-pane h2[b-clzpx3jucp] {
+    margin: 10px 0;
+}
+
+.status-row[b-clzpx3jucp] {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+}
+
+.status-row-warning[b-clzpx3jucp] {
+    color: orange;
+}
+
+.status-row-good[b-clzpx3jucp] {
+    color: green;
+}
+
+.status-row .spinner[b-clzpx3jucp] {
+    margin-left: 10px;
+}
+/* /Pages/SyncDemo.razor.rz.scp.css */
+.req-progress[b-tptz94a5tc] {
+    display: block;
+    margin: 20px 0;
+}
+
+.page-root[b-tptz94a5tc] {
+    margin-left: 20px;
+}
