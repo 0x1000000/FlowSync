@@ -1,0 +1,11 @@
+﻿<div class="thread">
+    <button class="primary-button" disabled="@IsStartDisabled" @onclick="Start">Start (# @RequestIndex)</button>
+    <div class="progress-container">
+        <div class="progress-bar" style="width: @Progress%"></div>
+        <span class="result">@ResultDescription</span>
+    </div>
+    @if (IsClearCancelVisible)
+    {
+        <button class="primary-button" @onclick="ClearCancel" disabled="@IsClearCancelDisabled">@(!IsCancelable ? "Clear" : "Cancel")</button>
+    }
+</div>

@@ -1,0 +1,34 @@
+﻿<div>
+    <nav>
+        <div class="link-wrapper">
+            <NavLink class="primary-button nav-link" href="/" Match="NavLinkMatch.All" ActiveClass="selected">
+                Home
+            </NavLink>
+        </div>
+        <h3>Sync Strategies</h3>
+        @foreach (var mode in Modes)
+        {
+            <div class="link-wrapper">
+                <NavLink class="primary-button nav-link" href="@GetPageModeUrl(mode)" ActiveClass="selected">
+                    @mode.GetName()
+                </NavLink>
+            </div>
+        }
+        <h3>Realistic Demo</h3>
+        <div class="link-wrapper">
+            <NavLink class="primary-button nav-link" href="grid-nofix" ActiveClass="selected">
+                Grid - No Sync
+            </NavLink>
+        </div>
+        <div class="link-wrapper">
+            <NavLink class="primary-button nav-link" href="grid-use-last" ActiveClass="selected">
+                Grid - Use Last
+            </NavLink>
+        </div>
+        <div class="link-wrapper">
+            <NavLink class="primary-button nav-link" href="grid-de-bounce" ActiveClass="selected">
+                Grid - De Bounce
+            </NavLink>
+        </div>
+    </nav>
+</div>

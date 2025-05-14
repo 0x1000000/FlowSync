@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDemo", "WebDemo\WebDemo.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowSyncTest", "FlowSyncTest\FlowSyncTest.csproj", "{D7D16E4D-8959-49E0-9B23-1C138ECB948E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebDemoStandalone", "WebDemoStandalone\WebDemoStandalone.csproj", "{D3DF25F0-1DE6-4799-96F4-7ED313FA00F6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{D7D16E4D-8959-49E0-9B23-1C138ECB948E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D7D16E4D-8959-49E0-9B23-1C138ECB948E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D7D16E4D-8959-49E0-9B23-1C138ECB948E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3DF25F0-1DE6-4799-96F4-7ED313FA00F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3DF25F0-1DE6-4799-96F4-7ED313FA00F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3DF25F0-1DE6-4799-96F4-7ED313FA00F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3DF25F0-1DE6-4799-96F4-7ED313FA00F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,18 @@
+﻿@page "/grid-de-bounce"
+@using FlowSync
+@implements IDisposable
+
+<Grid SyncStrategy="SyncStrategy" Header="Grid With 'De-Bounce 1.5 sec' Strategy"></Grid>
+
+
+@code
+{
+    readonly IFlowSyncStrategy<int> SyncStrategy = new DeBounceCoalescingSyncStrategy<int>(1500);
+
+
+    void IDisposable.Dispose()
+    {
+        this.SyncStrategy.CancelAll();
+        this.SyncStrategy.Dispose();
+    }
+}
