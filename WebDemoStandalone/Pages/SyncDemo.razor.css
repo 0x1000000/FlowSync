@@ -4,5 +4,10 @@
 }
 
 .page-root {
+    flex: 1 1 auto;
     margin-left: 20px;
+
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
 }
