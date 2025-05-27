@@ -5,6 +5,9 @@ using System.Runtime.CompilerServices;
 
 namespace FlowSync.Utils;
 
+/// <summary>
+/// A thread-safe dictionary that allows atomic updates of values using custom update logic. It ensures consistent and synchronized reads and writes by locking per key, enabling safe concurrent access and modification of values without global locks.
+/// </summary>
 internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where TKey : notnull
 {
     private class Entry

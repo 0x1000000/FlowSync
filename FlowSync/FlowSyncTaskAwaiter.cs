@@ -45,9 +45,9 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
 
     public FlowSyncTaskAwaiter<T> GetAwaiter() => this;
 
-    internal CancellationToken CancellationToken => this._syncObj.Token;
+    CancellationToken IFlowCancellationContext.CancellationToken => this.CancellationToken;
 
-    public bool IsCancelledLocally
+    bool IFlowCancellationContext.IsCancelledLocally
     {
         get
         {
@@ -58,6 +58,14 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
         }
     }
 
+    /// Retrieves the result of the asynchronous operation.
+    ///
+    /// If the operation completed with an exception, it will be rethrown here.
+    /// If the operation has not yet completed, an exception is thrown.
+    ///
+    /// <returns>The result of the operation.</returns>
+    /// <exception cref="Exception">Thrown if the operation has not completed.</exception>
+    /// <exception cref="ExceptionDispatchInfo">Rethrows any exception that occurred during execution.</exception>
     public T GetResult()
     {
         lock (this._syncObj)
@@ -76,6 +84,9 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
         }
     }
 
+    /// <summary>
+    /// Gets a value indicating whether the operation has completed execution.
+    /// </summary>
     public bool IsCompleted
     {
         get
@@ -87,10 +98,29 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
         }
     }
 
+    /// Starts the execution of the async state machine associated with this awaiter.
+    ///
+    /// If <paramref name="startAsynchronously"/> is <c>true</c>, the state machine is scheduled to run
+    /// on the thread pool to avoid blocking the current thread. If <c>false</c>, the state machine is
+    /// executed synchronously on the calling thread.
+    ///
+    /// This method is safe to call multiple times, but only the first invocation will execute the state machine.
+    /// Subsequent calls will be ignored once the state machine has started.
+    ///
+    /// <param name="startAsynchronously">If true, runs the state machine on the thread pool; otherwise runs it inline.</param>
+    /// <returns>The same awaiter instance.</returns>
     public FlowSyncTaskAwaiter<T> Start(bool startAsynchronously = false)
     {
         if (startAsynchronously)
         {
+            lock (this._syncObj)
+            {
+                if (this._asyncStateMachine == null)
+                {
+                    //Already started.
+                    return this;
+                }
+            }
             ThreadPool.QueueUserWorkItem(static self => self.Start(), this, true);
             return this;
         }
@@ -113,6 +143,10 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
         return this;
     }
 
+    /// <summary>
+    /// Registers a continuation to be invoked when the operation completes.
+    /// Note: This initiates the asynchronous operation itself.
+    /// </summary>
     public void OnCompleted(Action continuation)
     {
         lock (this._syncObj)
@@ -148,6 +182,10 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
         }
     }
 
+    /// <summary>
+    /// Registers a continuation to be invoked when the operation completes.
+    /// Note: This does not initiate the asynchronous operation itself.
+    /// </summary>
     public void LazyOnCompleted(Action continuation)
     {
         lock (this._syncObj)
@@ -165,6 +203,9 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
         }
     }
 
+    /// <summary>
+    /// Registers a handler to be invoked when the operation starts.
+    /// </summary>
     public void OnStarted(Action<bool> onStarted)
     {
         lock (this._syncObj)
@@ -190,6 +231,8 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
             }
         }
     }
+
+    internal CancellationToken CancellationToken => this._syncObj.Token;
 
     internal void SetResult(T result, bool fromLeaderAwaiter = false)
     {
@@ -337,6 +380,4 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
             }
         }
     }
-
-    CancellationToken IFlowCancellationContext.CancellationToken => this.CancellationToken;
 }
