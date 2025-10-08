@@ -9,7 +9,12 @@ namespace FlowSyncTest;
 public class FlowSyncTestUseFirstTest
 {
     [Test]
-    public async Task Basic()
+    public Task Basic() => this.Basic(useRegularTask: false);
+
+    [Test]
+    public Task BasicRegularTask() => this.Basic(useRegularTask: true);
+
+    private async Task Basic(bool useRegularTask)
     {
         var total = 7;
 
@@ -23,7 +28,7 @@ public class FlowSyncTestUseFirstTest
                 .Reverse()
                 .Select(
                     index => Task.Run(
-                        () => this.ThreadMethod(orderedSemaphore, cancellationLog, index, syncStrategy)
+                        () => this.ThreadMethod(orderedSemaphore, cancellationLog, index, syncStrategy, useRegularTask)
                     )
                 )
         );
@@ -38,11 +43,14 @@ public class FlowSyncTestUseFirstTest
         OrderedSemaphore orderedSemaphore,
         ConcurrentDictionary<int, bool> cancellationLog,
         int index,
-        IFlowSyncStrategy<int> syncStrategy)
+        IFlowSyncStrategy<int> syncStrategy,
+        bool useRegularTask)
     {
         await orderedSemaphore.WaitAsync(index);
 
-        var sync = await this.GetSyncMethod(cancellationLog, index).Sync(syncStrategy);
+        var sync = await (useRegularTask
+            ? FlowSyncTask.Create(ct => this.GetSyncMethodAsTask(ct, cancellationLog, index))
+            : this.GetSyncMethod(cancellationLog, index)).Sync(syncStrategy);
         return sync;
     }
 
@@ -55,6 +63,18 @@ public class FlowSyncTestUseFirstTest
         await Task.Delay(10);//Let other thread enter the critical section
 
         cancellationLog[index] = cancellationContext.CancellationToken.IsCancellationRequested;
+
+        return index + 42;
+    }
+
+    private async Task<int> GetSyncMethodAsTask(
+        CancellationToken cancellationToken,
+        ConcurrentDictionary<int, bool> cancellationLog,
+        int index)
+    {
+        await Task.Delay(10);//Let other thread enter the critical section
+
+        cancellationLog[index] = cancellationToken.IsCancellationRequested;
 
         return index + 42;
     }

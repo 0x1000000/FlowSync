@@ -92,7 +92,7 @@ public partial class RequestProgress
 
             for (var i = 1; i <= 100; i++)
             {
-                await Task.Delay(30, cancellationContext.CancellationToken);
+                await Task.Delay(20, cancellationContext.CancellationToken);
                 this.Progress = i;
                 await this.InvokeAsync(this.StateHasChanged);
             }

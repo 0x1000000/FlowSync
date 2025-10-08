@@ -9,7 +9,12 @@ namespace FlowSyncTest;
 public class FlowSyncTestUseLastTest
 {
     [Test]
-    public async Task Basic()
+    public Task Basic() => this.Basic(useRegularTask: false);
+
+    [Test]
+    public Task BasicRegularTask() => this.Basic(useRegularTask: true);
+
+    private async Task Basic(bool useRegularTask)
     {
         var total = 7;
 
@@ -24,7 +29,7 @@ public class FlowSyncTestUseLastTest
                 .Reverse()
                 .Select(
                     index => Task.Run(
-                        () => this.ThreadMethod(orderedSemaphore, cancellationLog, timeLines[index], index, syncStrategy)
+                        () => this.ThreadMethod(orderedSemaphore, cancellationLog, timeLines[index], index, syncStrategy, useRegularTask)
                     )
                 )
         );
@@ -43,11 +48,15 @@ public class FlowSyncTestUseLastTest
         ConcurrentDictionary<int, bool> cancellationLog,
         FakeTimer.FakeTimeLine timeLine,
         int index,
-        IFlowSyncStrategy<int> syncStrategy)
+        IFlowSyncStrategy<int> syncStrategy,
+        bool useRegularTask)
     {
         await orderedSemaphore.WaitAsync(index);
 
-        var flowSyncTaskAwaiter = this.GetSyncMethod(cancellationLog, timeLine, index).Sync(syncStrategy).Start();
+        var flowSyncTaskAwaiter =
+            (useRegularTask
+                ? FlowSyncTask.Create(ct => this.GetSyncMethodAsTask(ct, cancellationLog, timeLine, index))
+                : this.GetSyncMethod(cancellationLog, timeLine, index)).Sync(syncStrategy).Start();
 
         Thread.Sleep(10);
 
@@ -67,6 +76,22 @@ public class FlowSyncTestUseLastTest
             await timeLine.FakeDelay(100 + index);
 
             cancellationLog[index] = cancellationContext.CancellationToken.IsCancellationRequested;
+
+            return index + 42;
+        }
+    }
+
+    private async Task<int> GetSyncMethodAsTask(
+        CancellationToken cancellationToken,
+        ConcurrentDictionary<int, bool> cancellationLog,
+        FakeTimer.FakeTimeLine timeLine,
+        int index)
+    {
+        await using (timeLine)
+        {
+            await timeLine.FakeDelay(100 + index);
+
+            cancellationLog[index] = cancellationToken.IsCancellationRequested;
 
             return index + 42;
         }

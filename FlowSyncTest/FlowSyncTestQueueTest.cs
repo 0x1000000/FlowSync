@@ -9,7 +9,12 @@ namespace FlowSyncTest;
 public class FlowSyncTestQueueTest
 {
     [Test]
-    public async Task Basic()
+    public Task Basic() => Basic(useRegularTask: false);
+
+    [Test]
+    public Task BasicRegularTask() => Basic(useRegularTask: true);
+
+    private async Task Basic(bool useRegularTask)
     {
         var total = 7;
 
@@ -23,7 +28,7 @@ public class FlowSyncTestQueueTest
                 .Reverse()
                 .Select(
                     index => Task.Run(
-                        () => this.ThreadMethod(orderedSemaphore, cancellationLog, index, syncStrategy)
+                        () => this.ThreadMethod(orderedSemaphore, cancellationLog, index, syncStrategy, useRegularTask)
                     )
                 )
         );
@@ -35,19 +40,29 @@ public class FlowSyncTestQueueTest
         {
             Assert.That(cancellationLog[i], Is.False);
         }
-        
     }
 
     private async Task<int> ThreadMethod(
         OrderedSemaphore orderedSemaphore,
         ConcurrentDictionary<int, bool> cancellationLog,
         int index,
-        IFlowSyncStrategy<int> syncStrategy)
+        IFlowSyncStrategy<int> syncStrategy,
+        bool useRegularTask)
     {
         await orderedSemaphore.WaitAsync(index);
 
-        var sync = await this.GetSyncMethod(cancellationLog, index).Sync(syncStrategy);
-        return sync;
+        int result;
+        if (useRegularTask)
+        {
+            result = await FlowSyncTask.Create(ct => this.GetSyncMethodAsTask(ct, cancellationLog, index)).Sync(syncStrategy);
+        }
+        else
+        {
+            result = await this.GetSyncMethod(cancellationLog, index).Sync(syncStrategy);
+        }
+
+        
+        return result;
     }
 
     private async FlowSyncTask<int> GetSyncMethod(
@@ -59,6 +74,18 @@ public class FlowSyncTestQueueTest
         await Task.Delay(10);//Let other thread enter the critical section
 
         cancellationLog[index] = cancellationContext.CancellationToken.IsCancellationRequested;
+
+        return index + 42;
+    }
+
+    private async Task<int> GetSyncMethodAsTask(
+        CancellationToken cancellationToken,
+        ConcurrentDictionary<int, bool> cancellationLog,
+        int index)
+    {
+        await Task.Delay(10);//Let other thread enter the critical section
+
+        cancellationLog[index] = cancellationToken.IsCancellationRequested;
 
         return index + 42;
     }

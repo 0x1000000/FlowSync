@@ -1,7 +1,40 @@
 ﻿@page "/"
-
-<h3>Home</h3>
-
+<section>
+    <h2>Async Coalescing Strategies in .NET</h2>
+    <p>
+        Asynchronous operations are everywhere — from UI apps reacting to user input, to backend services processing requests. 
+        But what happens when multiple async processes try to access the same resource at the same time? 
+        Without coordination, you end up with duplicated work, race conditions, and wasted resources.
+    </p>
+    <p>
+        .NET 9 recently introduced basic task coalescing in caching — where only one operation runs and others await its result. 
+        But that’s just one simple case. In reality, we often need more control over how concurrent async calls are grouped, 
+        prioritized, or delayed.
+    </p>
+    <p>
+        This demo explores four coalescing strategies that help streamline async workflows by customizing how overlapping calls are handled:
+        <ul>
+            <li><a href="/demo/UseFirst"><strong>Use First</strong></a> – <em>Run once, reuse result</em></li>
+            <li><a href="/demo/UseLast"><strong>Use Last</strong></a> – <em>Cancel previous, keep latest</em></li>
+            <li><a href="/demo/Queue"><strong>Queue (with Use Last)</strong></a> – <em>One at a time, return last</em></li>
+            <li><a href="/demo/DeBounce"><strong>Use Last with Debounce</strong></a> – <em>Wait for quiet, then run</em></li>
+        </ul>
+    </p>
+    <p>
+        Curious what happens without any strategy at all? 
+        <a href="/demo/NoSync">See the “No Synchronization” demo →</a>
+    </p>
+    <h3>Realistic Demo</h3>
+    <p>
+        Below is a simulated data grid that mimics real-world backend delays: filtering takes 2 seconds, and sorting takes 7 seconds. 
+        When user input triggers overlapping requests, you’ll see how sync strategies help preserve consistency.
+    </p>
+    <ul>
+        <li><a href="/grid-nofix"><strong>No Sync</strong></a> – <em>Observe inconsistent results due to race conditions</em></li>
+        <li><a href="/grid-use-last"><strong>Use Last</strong></a> – <em>Ensures only the latest request completes</em></li>
+        <li><a href="/grid-de-bounce"><strong>Debounce</strong></a> – <em>Waits for quiet time before executing</em></li>
+    </ul>
+</section>
 @code {
 
 }
