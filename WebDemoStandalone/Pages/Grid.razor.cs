@@ -39,7 +39,7 @@ public partial class Grid
         else
         {
             this.RefreshGridDataFixed()
-                .Sync(this.SyncStrategy)
+                .CoalesceUsing(this.SyncStrategy)
                 .Start();
         }
 

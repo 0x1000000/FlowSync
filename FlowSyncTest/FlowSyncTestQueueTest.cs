@@ -54,11 +54,11 @@ public class FlowSyncTestQueueTest
         int result;
         if (useRegularTask)
         {
-            result = await FlowSyncTask.Create(ct => this.GetSyncMethodAsTask(ct, cancellationLog, index)).Sync(syncStrategy);
+            result = await FlowSyncTask.Create(ct => this.GetSyncMethodAsTask(ct, cancellationLog, index)).CoalesceUsing(syncStrategy);
         }
         else
         {
-            result = await this.GetSyncMethod(cancellationLog, index).Sync(syncStrategy);
+            result = await this.GetSyncMethod(cancellationLog, index).CoalesceUsing(syncStrategy);
         }
 
         

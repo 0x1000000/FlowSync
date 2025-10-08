@@ -56,7 +56,7 @@ public class FlowSyncTestUseLastTest
         var flowSyncTaskAwaiter =
             (useRegularTask
                 ? FlowSyncTask.Create(ct => this.GetSyncMethodAsTask(ct, cancellationLog, timeLine, index))
-                : this.GetSyncMethod(cancellationLog, timeLine, index)).Sync(syncStrategy).Start();
+                : this.GetSyncMethod(cancellationLog, timeLine, index)).CoalesceUsing(syncStrategy).Start();
 
         Thread.Sleep(10);
 

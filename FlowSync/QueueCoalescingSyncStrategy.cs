@@ -69,7 +69,7 @@ public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         {
             this._queue = new Queue<FlowSyncTaskAwaiter<T>>();
             this._queue.Enqueue(first);
-            this.Awaiter = this.ProcessQueue().Sync(new NoCoalescingCancellableSyncStrategy<T>());
+            this.Awaiter = this.ProcessQueue().CoalesceUsing(new NoCoalescingCancellableSyncStrategy<T>());
         }
 
         public bool Enqueue(FlowSyncTaskAwaiter<T> e)

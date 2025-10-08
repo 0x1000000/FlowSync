@@ -75,7 +75,7 @@ public readonly struct FlowSyncTask<T>
         this._starter = starter;
     }
 
-    public FlowSyncTaskAwaiter<T> Sync(IFlowSyncStrategy<T> syncStrategy, string? resourceId = null)
+    public FlowSyncTaskAwaiter<T> CoalesceUsing(IFlowSyncStrategy<T> syncStrategy, string? resourceId = null)
     {
         return syncStrategy.EnterSyncSection(this._starter, resourceId);
     }

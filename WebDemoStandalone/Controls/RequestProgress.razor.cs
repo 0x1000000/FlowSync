@@ -61,7 +61,7 @@ public partial class RequestProgress
         this.Progress = 0;
         try
         {
-            this.Result = await this.DoJobAsync().Sync(this.SyncStrategy, this.ResourceId);
+            this.Result = await this.DoJobAsync().CoalesceUsing(this.SyncStrategy, this.ResourceId);
 
             this.ProgressState = this.ProgressState == ProgressState.Redirected
                 ? ProgressState.RedirectedCompleted
