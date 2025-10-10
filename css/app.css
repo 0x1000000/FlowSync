@@ -20,6 +20,14 @@ html, body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+a {
+    color: var(--text-main-color);
+}
+
+    a:visited {
+        color: var(--text-main-color);
+    }
+
 #app {
     width: 100%;
     height: 100%;
@@ -105,6 +113,7 @@ code {
     cursor: pointer;
     transition: all 0.3s ease;
     outline: none;
+    white-space: nowrap;
 }
 
 .primary-button:hover:not(:disabled) {
@@ -140,6 +149,11 @@ code {
     background-color: var(--main-color);
     color: var(--text-neg-main-color);
     border-color: var(--main-color);
+}
+
+section {
+    margin: 20px;
+    max-width: 1200px
 }
 
 select {
