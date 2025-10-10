@@ -22,19 +22,21 @@ public partial class RequestProgress
 
     [Parameter] public IFlowSyncStrategy<int> SyncStrategy { get; set; } = default!;
 
-    private int Progress { get; set; }
+    private int ProgressPrc { get; set; }
+
+    private int LorryProgress { get; set; }
 
     private ProgressState ProgressState { get; set; }
 
     private int Result { get; set; }
 
-    private string ResultDescription => this.ProgressState switch
+    private string ProgressStatusDescription => this.ProgressState switch
     {
         ProgressState.Initial => "Not Started",
         ProgressState.Pending => "Pending",
-        ProgressState.InProgress => $"Progress: {this.Progress}%...",
+        ProgressState.InProgress => $"Progress: {this.ProgressPrc}%...",
         ProgressState.Redirected => "Redirected. Waiting for external result...",
-        ProgressState.Completed => $"Completed with result #{this.Result}",
+        ProgressState.Completed => $"Completed with result: {this.Result}",
         ProgressState.RedirectedCompleted => $"Cancelled with external result: {this.Result}",
         ProgressState.Cancelled => "Cancelled",
         _ => throw new ArgumentOutOfRangeException()
@@ -44,11 +46,17 @@ public partial class RequestProgress
         => this.ProgressState is ProgressState.InProgress or ProgressState.Redirected or ProgressState.Pending;
 
     public bool IsClearCancelDisabled => this.ProgressState == ProgressState.Redirected ||
-                                         (this.ProgressState == ProgressState.InProgress && this.Progress == 100);
+                                         (this.ProgressState == ProgressState.InProgress && this.ProgressPrc == 100);
 
     public bool IsClearCancelVisible => this.ProgressState is not ProgressState.Initial;
 
     public bool IsCancelable  => this.ProgressState is ProgressState.InProgress or ProgressState.Pending or ProgressState.Redirected;
+
+    public int? ResultBox => this.ProgressState is ProgressState.Completed or ProgressState.RedirectedCompleted
+        ? this.Result
+        : null;
+
+    public bool IsLorryActive => this.ProgressState is ProgressState.InProgress;
 
     private async Task Start()
     {
@@ -58,10 +66,12 @@ public partial class RequestProgress
         }
 
         this.ProgressState = ProgressState.Pending;
-        this.Progress = 0;
+        this.ProgressPrc = 0;
+        this.LorryProgress = 0;
         try
         {
-            this.Result = await this.DoJobAsync().CoalesceUsing(this.SyncStrategy, this.ResourceId);
+            this.Result = await this.GetResultAsync()
+                .CoalesceUsing(this.SyncStrategy, this.ResourceId);
 
             this.ProgressState = this.ProgressState == ProgressState.Redirected
                 ? ProgressState.RedirectedCompleted
@@ -73,13 +83,13 @@ public partial class RequestProgress
         }
         finally
         {
-            this.Progress = 100;
+            this.ProgressPrc = 100;
         }
 
         await this.InvokeAsync(this.StateHasChanged);
     }
 
-    private async FlowSyncTask<int> DoJobAsync()
+    private async FlowSyncTask<int> GetResultAsync()
     {
         this.ProgressState = ProgressState.InProgress;
         await this.InvokeAsync(this.StateHasChanged);
@@ -92,8 +102,9 @@ public partial class RequestProgress
 
             for (var i = 1; i <= 100; i++)
             {
-                await Task.Delay(20, cancellationContext.CancellationToken);
-                this.Progress = i;
+                await Task.Delay(40, cancellationContext.CancellationToken);
+                this.ProgressPrc = i;
+                this.LorryProgress = i;
                 await this.InvokeAsync(this.StateHasChanged);
             }
             return result;
@@ -115,7 +126,8 @@ public partial class RequestProgress
         }
         else
         {
-            this.Progress = 0;
+            this.ProgressPrc = 0;
+            this.LorryProgress = 0;
             this.ProgressState = ProgressState.Initial;
         }
     }
