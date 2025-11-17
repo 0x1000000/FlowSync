@@ -16,11 +16,17 @@ public enum ProgressState
 
 public partial class RequestProgress
 {
-    [Parameter] public string ResourceId { get; set; } = string.Empty;
+    [Parameter]
+    public string ResourceId { get; set; } = string.Empty;
 
-    [Parameter] public int RequestIndex { get; set; }
+    [Parameter]
+    public int RequestIndex { get; set; }
 
-    [Parameter] public IFlowSyncStrategy<int> SyncStrategy { get; set; } = default!;
+    [Parameter]
+    public IFlowSyncStrategy<int> SyncStrategy { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<int> ResultChanged { get; set; }
 
     private int ProgressPrc { get; set; }
 
@@ -73,6 +79,8 @@ public partial class RequestProgress
             this.Result = await this.GetResultAsync()
                 .CoalesceUsing(this.SyncStrategy, this.ResourceId);
 
+            await this.ResultChanged.InvokeAsync(this.Result);
+
             this.ProgressState = this.ProgressState == ProgressState.Redirected
                 ? ProgressState.RedirectedCompleted
                 : ProgressState.Completed;
@@ -102,7 +110,7 @@ public partial class RequestProgress
 
             for (var i = 1; i <= 100; i++)
             {
-                await Task.Delay(40, cancellationContext.CancellationToken);
+                await Task.Delay(54 - this.RequestIndex*2, cancellationContext.CancellationToken);
                 this.ProgressPrc = i;
                 this.LorryProgress = i;
                 await this.InvokeAsync(this.StateHasChanged);
@@ -116,7 +124,6 @@ public partial class RequestProgress
             return -1;
         }
     }
-
 
     private void ClearCancel()
     {

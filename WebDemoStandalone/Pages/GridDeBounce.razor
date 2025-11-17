@@ -4,7 +4,6 @@
 
 <Grid SyncStrategy="SyncStrategy" Header="Grid With 'De-Bounce 1.5 sec' Strategy"></Grid>
 
-
 @code
 {
     readonly IFlowSyncStrategy<int> SyncStrategy = new DeBounceCoalescingSyncStrategy<int>(1500);

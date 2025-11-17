@@ -6,31 +6,119 @@
     <div class="progress-panel">
         <h1>SyncStrategy: @Header</h1>
         
-        <h2>Resource 1</h2>
+        <h2>
+            Resource 1
+            @if (this.LastResult.HasValue)
+            {
+                <span> - Last result: @(this.LastResult)</span>
+            }
+        </h2>
 
         <div class="req-progress">
-            <RequestProgress ResourceId="r1" RequestIndex="1" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" />
+            <RequestProgress ResourceId="r1" RequestIndex="1" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" ResultChanged="OnResultChange" />
         </div>
         <div class="req-progress">
-            <RequestProgress ResourceId="r1" RequestIndex="3" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" />
+            <RequestProgress ResourceId="r1" RequestIndex="3" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" ResultChanged="OnResultChange" />
         </div>
         <div class="req-progress">
-            <RequestProgress ResourceId="r1" RequestIndex="7" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" />
+            <RequestProgress ResourceId="r1" RequestIndex="7" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" ResultChanged="OnResultChange" />
         </div>
 
         <h2>Resource 2</h2>
 
         <div class="req-progress">
-            <RequestProgress ResourceId="r2" RequestIndex="1" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" />
+            <RequestProgress ResourceId="r2" RequestIndex="1" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" ResultChanged="OnResultChange" />
         </div>
         <div class="req-progress">
-            <RequestProgress ResourceId="r2" RequestIndex="3" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" />
+            <RequestProgress ResourceId="r2" RequestIndex="3" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" ResultChanged="OnResultChange" />
         </div>
         <div class="req-progress">
-            <RequestProgress ResourceId="r2" RequestIndex="7" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" />
+            <RequestProgress ResourceId="r2" RequestIndex="7" SyncStrategy="FlowSyncStrategy" @key="FlowSyncStrategy" ResultChanged="OnResultChange" />
         </div>
     </div>
     <div class="description-panel">
-        <p>@Description</p>
+        <h1>Description</h1>
+        @if (this.PageMode == SyncDemoPageMode.NoSync)
+        {
+            <p>
+                In this mode, each lorry represents an independent async request. Multiple lorries can start and run at the same time, and each will deliver its value to the garage as soon as it completes.
+            </p>
+            <p>
+                Because there is no coordination between them:
+                <ul>
+                    <li>Lorries may finish in a different order than they were started.</li>
+
+                    <li>Delivered values may not match expectations when several requests overlap.</li>
+
+                    <li>Some lorries may “overtake” others, simulating race conditions and inconsistent results.</li>
+
+                </ul>
+                This tab illustrates the problems that arise without any synchronization or coalescing strategy in place.
+            </p>
+            <p>
+                This tab illustrates the problems that arise without any synchronization or coalescing strategy in place.
+            </p>
+        } 
+        else if (PageMode == SyncDemoPageMode.UseFirst)
+        {
+            <p>In this mode, the first lorry to start becomes the “leader” and executes its request. All other lorries that start while the first one is still running do not move; instead, they wait and eventually receive the same delivered value as the first lorry.</p>
+            <p>Key points:</p>
+            <ul>
+                <li>Only the first request actually runs.</li>
+                <li>Subsequent overlapping requests reuse the result of the first.</li>
+                <li>This prevents redundant work and ensures consistent results for all lorries during overlapping operations.</li>
+            </ul>
+            <p>This strategy demonstrates how using a simple coalescing approach can efficiently handle concurrent requests while avoiding race conditions.</p>
+        }
+        else if (PageMode == SyncDemoPageMode.UseLast)
+        {
+            <p>
+                In this mode, the most recently started lorry becomes the active one. If a lorry is already moving when a new one starts, 
+                the current lorry is stopped, and the new lorry takes over. All lorries that started earlier will eventually receive 
+                the result of the last completed lorry.
+            </p>
+            <ul>
+                <li>Only the latest request is executed at any given time.</li>
+                <li>Previous overlapping requests are canceled or paused.</li>
+                <li>Ensures that the final delivered value always corresponds to the most recent request.</li>
+            </ul>
+            <p>
+                This strategy is useful when only the newest request matters, such as in real-time filtering or search scenarios.
+            </p>
+        }
+        else if (PageMode == SyncDemoPageMode.Queue)
+        {
+            <p>
+                In this mode, lorries are executed one at a time in the order they were started. Each lorry completes its operation fully, 
+                but only the result of the last lorry is considered relevant. All previous lorries' results are ignored or overwritten 
+                by the final value.
+            </p>
+            <ul>
+                <li>Requests are processed sequentially.</li>
+                <li>Each lorry runs to completion, even if new lorries are started.</li>
+                <li>Only the last executed request determines the final delivered value.</li>
+            </ul>
+            <p>
+                This strategy is useful when each request has a side effect that must be completed, but only the latest value matters 
+                for the final state.
+            </p>
+        }
+        else if (PageMode == SyncDemoPageMode.DeBounce)
+        {
+            <p>
+                In this mode, the system waits for a short “quiet period” (2 seconds) after a lorry starts before executing it. 
+                If a new lorry starts during this period, the timer resets and the previous lorry is put on hold. 
+                Only the last lorry that starts after the quiet period executes, and all pending lorries eventually receive its result.
+            </p>
+            <ul>
+                <li>Delays execution to avoid unnecessary work during rapid updates.</li>
+                <li>Previous overlapping requests are canceled or postponed.</li>
+                <li>Ensures that only the most stable/latest input is processed after user activity settles.</li>
+            </ul>
+            <p>
+                This strategy is particularly useful in UIs where users may trigger multiple rapid requests, 
+                such as typing in a search box or adjusting filters.
+            </p>
+        }
     </div>
 </div>

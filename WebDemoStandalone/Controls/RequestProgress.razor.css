@@ -15,7 +15,7 @@
 
 .lorry-track {
     position: relative;
-    width: 500px;
+    width: 400px;
     height: 30px;
     margin: 0 10px;
     overflow: hidden;
@@ -71,7 +71,7 @@
 
 .progress-container {
     position: relative;
-    width: 500px;
+    width: 400px;
     height: 23px;
     margin: 0 10px;
     border: 1px solid var(--main-color);

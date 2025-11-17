@@ -2,17 +2,48 @@
     position: relative;
     display: flex;
     flex-direction: row;
+    align-items: stretch;
     height: 100%;
     width: 100%;
 }
 
 main {
     flex: 1 1 auto;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
+    overflow: auto;
 }
 
 .sidebar {
+    flex: 0 0 auto;
     background: var(--background-1);
+    overflow: auto;
+}
+
+.toggle-btn {
+    display: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    border: none;
+    background: var(--background-1);
+    color: var(--text-main-color);
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+    margin: 6px;
+}
+
+@media (max-width: 1000px) {
+    .toggle-btn {
+        display: initial;
+    }
+
+    .collapsed .nav-menu-box {
+        display: none;
+    }
+
+    .open main {
+        display: none;
+    }
 }

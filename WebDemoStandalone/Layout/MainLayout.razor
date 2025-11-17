@@ -1,10 +1,41 @@
 ﻿@inherits LayoutComponentBase
-<div class="page">
+@inject NavigationManager Nav
+
+<div class="page @(isSidebarOpen ? "open" : "collapsed")">
     <div class="sidebar">
-        <NavMenu />
+        <button class="toggle-btn" @onclick="ToggleSidebar">
+            ☰
+        </button>
+        <div class="nav-menu-box">
+            <NavMenu/>
+        </div>
     </div>
 
     <main>
         @Body
     </main>
 </div>
+
+@code {
+    private bool isSidebarOpen = false; // collapsed by default on mobile
+
+    protected override void OnInitialized()
+    {
+        this.Nav.LocationChanged += this.NavOnLocationChanged;
+    }
+
+    private void NavOnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+    // collapse on any navigation
+        this.isSidebarOpen = false;
+        this.InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleSidebar()
+        => this.isSidebarOpen = !this.isSidebarOpen;
+
+    public void Dispose()
+    {
+        this.Nav.LocationChanged -= this.NavOnLocationChanged;
+    }
+}

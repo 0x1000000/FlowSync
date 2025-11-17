@@ -11,35 +11,43 @@ public partial class SyncDemo : ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>
     {
         set
         {
-            var mode = Enum.TryParse<SyncDemoPageMode>(value, true, out var parsedResult) ? parsedResult : SyncDemoPageMode.NoSync;
+            var mode = Enum.TryParse<SyncDemoPageMode>(value, true, out var parsedResult)
+                ? parsedResult
+                : SyncDemoPageMode.NoSync;
 
+            this.PageMode = mode;
             this.Header = mode.GetName();
-            this.Description = mode.GetDescription();
 
             this.FlowSyncStrategy.CancelAll();
             this.FlowSyncStrategy.Dispose();
             this.FlowSyncStrategy = mode.Accept(this);
+            this.LastResult = null;
         }
     }
 
-    public string Header { get; set; } = string.Empty;
+    private SyncDemoPageMode PageMode { get; set; }
 
-    public string Description { get; set; } = string.Empty;
+    private string Header { get; set; } = string.Empty;
 
-    public IFlowSyncStrategy<int> FlowSyncStrategy { get; set; } = NoCoalescingSyncStrategy<int>.Instance;
+    private int? LastResult { get; set; }
 
-    public IFlowSyncStrategy<int> CaseNoSync() => new NoCoalescingCancellableSyncStrategy<int>();
+    private IFlowSyncStrategy<int> FlowSyncStrategy { get; set; } = NoCoalescingSyncStrategy<int>.Instance;
 
-    public IFlowSyncStrategy<int> CaseUseFirst() => new UseFirstCoalescingSyncStrategy<int>();
+    private void OnResultChange(int result) => this.LastResult = result;
 
-    public IFlowSyncStrategy<int> CaseUseLast() => new UseLastCoalescingSyncStrategy<int>();
+    void IDisposable.Dispose() => this.FlowSyncStrategy.Dispose();
 
-    public IFlowSyncStrategy<int> CaseQueue() => new QueueCoalescingSyncStrategy<int>();
+    IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseNoSync()
+        => new NoCoalescingCancellableSyncStrategy<int>();
 
-    public IFlowSyncStrategy<int> CaseDeBounce() => new DeBounceCoalescingSyncStrategy<int>(2000/*2 Sec*/);
+    IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseUseFirst()
+        => new UseFirstCoalescingSyncStrategy<int>();
 
-    public void Dispose()
-    {
-        this.FlowSyncStrategy.Dispose();
-    }
+    IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseUseLast()
+        => new UseLastCoalescingSyncStrategy<int>();
+
+    IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseQueue() => new QueueCoalescingSyncStrategy<int>();
+
+    IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseDeBounce()
+        => new DeBounceCoalescingSyncStrategy<int>(2000 /*2 Sec*/);
 }
