@@ -16,7 +16,7 @@
 
 .lorry-track[b-455bxp00qn] {
     position: relative;
-    width: 500px;
+    width: 400px;
     height: 30px;
     margin: 0 10px;
     overflow: hidden;
@@ -72,7 +72,7 @@
 
 .progress-container[b-455bxp00qn] {
     position: relative;
-    width: 500px;
+    width: 400px;
     height: 23px;
     margin: 0 10px;
     border: 1px solid var(--main-color);
@@ -154,19 +154,50 @@
     position: relative;
     display: flex;
     flex-direction: row;
+    align-items: stretch;
     height: 100%;
     width: 100%;
 }
 
 main[b-ze7zunoz9s] {
     flex: 1 1 auto;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
+    overflow: auto;
 }
 
 .sidebar[b-ze7zunoz9s] {
+    flex: 0 0 auto;
     background: var(--background-1);
+    overflow: auto;
+}
+
+.toggle-btn[b-ze7zunoz9s] {
+    display: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    border: none;
+    background: var(--background-1);
+    color: var(--text-main-color);
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+    margin: 6px;
+}
+
+@media (max-width: 1000px) {
+    .toggle-btn[b-ze7zunoz9s] {
+        display: initial;
+    }
+
+    .collapsed .nav-menu-box[b-ze7zunoz9s] {
+        display: none;
+    }
+
+    .open main[b-ze7zunoz9s] {
+        display: none;
+    }
 }
 /* /Layout/NavMenu.razor.rz.scp.css */
 .link-wrapper[b-5bi986ernz] {
@@ -182,6 +213,7 @@ h3[b-5bi986ernz] {
     background-color: var(--background-1);
     display: flex;
     align-items: center;
+    min-width: 1000px;
 }
 
 select[b-clzpx3jucp] {
@@ -276,4 +308,16 @@ select[b-clzpx3jucp] {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+    min-width: 700px;
+}
+
+.progress-panel[b-tptz94a5tc] {
+    flex: 0 1 700px;
+    margin-right: 20px;
+}
+
+.description-panel[b-tptz94a5tc] {
+    flex: 1 1 400px;
+    max-width: 700px;
+    margin-right: 20px;
 }

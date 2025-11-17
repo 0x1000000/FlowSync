@@ -18,6 +18,7 @@ html, body {
     padding: 0;
     color: var(--text-main-color);
     font-family: Arial, Helvetica, sans-serif;
+    overflow: hidden;
 }
 
 a {
@@ -33,6 +34,7 @@ a {
     height: 100%;
     margin: 0;
     padding: 0;
+    overflow: hidden;
 }
 
 #blazor-error-ui {
