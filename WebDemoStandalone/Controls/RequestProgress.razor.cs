@@ -110,7 +110,7 @@ public partial class RequestProgress
 
             for (var i = 1; i <= 100; i++)
             {
-                await Task.Delay(54 - this.RequestIndex*2, cancellationContext.CancellationToken);
+                await Task.Delay(54 - this.RequestIndex*3, cancellationContext.CancellationToken);
                 this.ProgressPrc = i;
                 this.LorryProgress = i;
                 await this.InvokeAsync(this.StateHasChanged);

@@ -41,8 +41,5 @@
             }
         }
     </div>
-    @if (IsClearCancelVisible)
-    {
-        <button class="primary-button" @onclick="ClearCancel" disabled="@IsClearCancelDisabled">@(!IsCancelable ? "Clear" : "Cancel")</button>
-    }
+    <button class="primary-button clear-cancel-button @(IsClearCancelVisible ? "" : "hidden")" @onclick="ClearCancel" disabled="@IsClearCancelDisabled">@(!IsCancelable ? "Clear" : "Cancel")</button>
 </div>
