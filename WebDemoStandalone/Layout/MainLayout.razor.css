@@ -34,7 +34,7 @@ main {
     margin: 6px;
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1300px) {
     .toggle-btn {
         display: initial;
     }

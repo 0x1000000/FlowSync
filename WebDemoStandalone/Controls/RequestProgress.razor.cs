@@ -16,17 +16,15 @@ public enum ProgressState
 
 public partial class RequestProgress
 {
-    [Parameter]
-    public string ResourceId { get; set; } = string.Empty;
+    [Parameter] public string ResourceId { get; set; } = string.Empty;
 
-    [Parameter]
-    public int RequestIndex { get; set; }
+    [Parameter] public int RequestIndex { get; set; }
 
-    [Parameter]
-    public IFlowSyncStrategy<int> SyncStrategy { get; set; } = default!;
+    [Parameter] public IFlowSyncStrategy<int> SyncStrategy { get; set; } = default!;
 
-    [Parameter]
-    public EventCallback<int> ResultChanged { get; set; }
+    [Parameter] public EventCallback<int> Started { get; set; }
+
+    [Parameter] public EventCallback<int> ResultChanged { get; set; }
 
     private int ProgressPrc { get; set; }
 
@@ -56,7 +54,8 @@ public partial class RequestProgress
 
     public bool IsClearCancelVisible => this.ProgressState is not ProgressState.Initial;
 
-    public bool IsCancelable  => this.ProgressState is ProgressState.InProgress or ProgressState.Pending or ProgressState.Redirected;
+    public bool IsCancelable
+        => this.ProgressState is ProgressState.InProgress or ProgressState.Pending or ProgressState.Redirected;
 
     public int? ResultBox => this.ProgressState is ProgressState.Completed or ProgressState.RedirectedCompleted
         ? this.Result
@@ -70,6 +69,8 @@ public partial class RequestProgress
         {
             return;
         }
+
+        await this.Started.InvokeAsync(this.RequestIndex);
 
         this.ProgressState = ProgressState.Pending;
         this.ProgressPrc = 0;
@@ -110,11 +111,12 @@ public partial class RequestProgress
 
             for (var i = 1; i <= 100; i++)
             {
-                await Task.Delay(54 - this.RequestIndex*3, cancellationContext.CancellationToken);
+                await Task.Delay(54 - this.RequestIndex * 3, cancellationContext.CancellationToken);
                 this.ProgressPrc = i;
                 this.LorryProgress = i;
                 await this.InvokeAsync(this.StateHasChanged);
             }
+
             return result;
         }
         catch (OperationCanceledException) when (cancellationContext.IsCancelledLocally)

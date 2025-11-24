@@ -21,7 +21,8 @@ public partial class SyncDemo : ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>
             this.FlowSyncStrategy.CancelAll();
             this.FlowSyncStrategy.Dispose();
             this.FlowSyncStrategy = mode.Accept(this);
-            this.LastResult = null;
+            this.StartsAndResult1.Clear();
+            this.StartsAndResult2.Clear();
         }
     }
 
@@ -29,11 +30,17 @@ public partial class SyncDemo : ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>
 
     private string Header { get; set; } = string.Empty;
 
-    private int? LastResult { get; set; }
-
     private IFlowSyncStrategy<int> FlowSyncStrategy { get; set; } = NoCoalescingSyncStrategy<int>.Instance;
 
-    private void OnResultChange(int result) => this.LastResult = result;
+    private void OnResult1Change(int result) => this.StartsAndResult1.Result = result;
+    private void OnResult2Change(int result) => this.StartsAndResult2.Result = result;
+
+    private void OnStarted1(int index) => this.StartsAndResult1.Clear(index);
+
+    private void OnStarted2(int index) => this.StartsAndResult2.Clear(index);
+
+    private StartsAndResult StartsAndResult1 { get; } = new StartsAndResult();
+    private StartsAndResult StartsAndResult2 { get; } = new StartsAndResult();
 
     void IDisposable.Dispose() => this.FlowSyncStrategy.Dispose();
 
@@ -50,4 +57,16 @@ public partial class SyncDemo : ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>
 
     IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseDeBounce()
         => new DeBounceCoalescingSyncStrategy<int>(2000 /*2 Sec*/);
+
+    private class StartsAndResult
+    {
+        public int? Start = null;
+        public int? Result = null;
+
+        public void Clear(int? start = null)
+        {
+            this.Start = start;
+            this.Result = null;
+        }
+    }
 }
