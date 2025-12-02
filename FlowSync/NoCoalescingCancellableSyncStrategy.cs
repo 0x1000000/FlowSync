@@ -4,13 +4,13 @@ namespace FlowSync;
 
 public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
 {
-    private readonly AtomicUpdateDictionary<string, CancellationTokenSource> _storage = new();
+    private readonly AtomicUpdateDictionary<object, CancellationTokenSource> _storage = new();
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
         IFlowSyncStarter<T> flowStarter,
-        string? resourceId)
+        object? resourceId)
     {
-        var key = resourceId ?? string.Empty;
+        object key = resourceId ?? AtomicUpdateDictionary.DefaultKey;
         var (_, result) = this._storage.AddOrUpdate(
             key: key,
             arg: (this, flowStarter),
@@ -32,10 +32,10 @@ public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
         return result;
     }
 
-    public void Cancel(string? resourceId = null)
+    public void Cancel(object? resourceId = null)
     {
         this._storage.TryUpdate(
-            key: resourceId ?? string.Empty,
+            key: resourceId ?? AtomicUpdateDictionary.DefaultKey,
             arg: default(object?),
             updateValueFactory: static (_, _, cts) =>
             {
@@ -58,7 +58,7 @@ public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
     }
 
 
-    private FlowSyncTaskAwaiter<T> SubscribeRemoval(string key, FlowSyncTaskAwaiter<T> awaiter, CancellationTokenSource source)
+    private FlowSyncTaskAwaiter<T> SubscribeRemoval(object key, FlowSyncTaskAwaiter<T> awaiter, CancellationTokenSource source)
     {
         awaiter.LazyOnCompleted(
             () => this._storage.TryRemove(key, currentSource => currentSource == source)

@@ -291,3 +291,8 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
         this._globalLock.Dispose();
     }
 }
+
+internal class AtomicUpdateDictionary
+{
+    public static readonly object DefaultKey = new();
+}

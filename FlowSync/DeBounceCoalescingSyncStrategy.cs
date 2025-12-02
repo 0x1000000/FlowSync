@@ -12,7 +12,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         FlowSyncTaskAwaiter<T>? CurrentAwaiter,
         CancellationTokenSource? CancellationTokenSource);
 
-    private readonly AtomicUpdateDictionary<string, Entry> _storage = new();
+    private readonly AtomicUpdateDictionary<object, Entry> _storage = new();
 
     private readonly int _durationMs;
 
@@ -25,9 +25,9 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
         IFlowSyncStarter<T> flowStarter,
-        string? resourceId = null)
+        object? resourceId = null)
     {
-        resourceId ??= string.Empty;
+        resourceId ??= AtomicUpdateDictionary.DefaultKey;
 
         var (result, awaiterToCancel) = this._storage
             .AddOrUpdate(
@@ -88,10 +88,10 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         return result.Remote;
     }
 
-    public void Cancel(string? resourceId = null)
+    public void Cancel(object? resourceId = null)
     {
         this._storage.TryRead(
-            resourceId ?? string.Empty,
+            resourceId ?? AtomicUpdateDictionary.DefaultKey,
             this,
             static (_, _, e) =>
             {
@@ -125,7 +125,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 
     public void Dispose() => this._storage.Dispose();
 
-    private void OnTimer(Task delayTask, string resourceId, Entry originalEntry)
+    private void OnTimer(Task delayTask, object resourceId, Entry originalEntry)
     {
         this._storage.TryUpdate(
             resourceId,
@@ -186,7 +186,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         );
     }
 
-    private void OnRemoteStarted(string resourceId, Entry originalEntry)
+    private void OnRemoteStarted(object resourceId, Entry originalEntry)
     {
         this._storage.TryRead(
             resourceId,
@@ -201,7 +201,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         );
     }
 
-    private void OnAwaiterComplete(string resourceId, Entry originalEntry)
+    private void OnAwaiterComplete(object resourceId, Entry originalEntry)
     {
         this._storage.TryRead(
             resourceId,
@@ -216,7 +216,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         );
     }
 
-    private void OnRemoteCompleted(string resourceId, FlowSyncTaskAwaiter<T> remote)
+    private void OnRemoteCompleted(object resourceId, FlowSyncTaskAwaiter<T> remote)
     {
         if (!this._storage.TryRemove(resourceId, currentEntry => currentEntry.Remote == remote))
         {

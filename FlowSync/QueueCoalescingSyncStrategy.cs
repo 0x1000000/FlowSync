@@ -4,14 +4,14 @@ namespace FlowSync;
 
 public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 {
-    private readonly AtomicUpdateDictionary<string, AwaiterQueue> _storage = new();
+    private readonly AtomicUpdateDictionary<object, AwaiterQueue> _storage = new();
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
         IFlowSyncStarter<T> flowStarter,
-        string? resourceId)
+        object? resourceId)
     {
         return this._storage.AddOrUpdate(
-                key: resourceId ?? string.Empty,
+                key: resourceId ?? AtomicUpdateDictionary.DefaultKey,
                 arg: (self: this, flowStarter),
                 addValueFactory: static (k, args) =>
                     args.self.SubscribeRemoval(k, new AwaiterQueue(args.flowStarter.CreateAwaiter())),
@@ -29,10 +29,10 @@ public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
             .Awaiter;
     }
 
-    public void Cancel(string? resourceId = null)
+    public void Cancel(object? resourceId = null)
     {
         this._storage.TryRead(
-            resourceId ?? string.Empty,
+            resourceId ?? AtomicUpdateDictionary.DefaultKey,
             this,
             static (_, _, e) => e.Cancel()
         );
@@ -51,7 +51,7 @@ public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         this._storage.Dispose();
     }
 
-    private AwaiterQueue SubscribeRemoval(string key, AwaiterQueue queue)
+    private AwaiterQueue SubscribeRemoval(object key, AwaiterQueue queue)
     {
         queue.Awaiter.OnCompleted(
             () => this._storage.TryRemove(key, currentQueue => currentQueue == queue)

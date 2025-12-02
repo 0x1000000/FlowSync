@@ -4,14 +4,14 @@ namespace FlowSync;
 
 public class UseFirstCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 {
-    private readonly AtomicUpdateDictionary<string, FlowSyncTaskAwaiter<T>> _storage = new();
+    private readonly AtomicUpdateDictionary<object, FlowSyncTaskAwaiter<T>> _storage = new();
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
         IFlowSyncStarter<T> flowStarter,
-        string? resourceId)
+        object? resourceId)
     {
         return this._storage.AddOrUpdate(
-            key: resourceId ?? string.Empty,
+            key: resourceId ?? AtomicUpdateDictionary.DefaultKey,
             arg: (self: this, flowStarter),
             addValueFactory: static (key, args)
                 => args.self.SubscribeRemoval(key, args.flowStarter.CreateAwaiter()),
@@ -21,10 +21,10 @@ public class UseFirstCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         );
     }
 
-    public void Cancel(string? resourceId = null)
+    public void Cancel(object? resourceId = null)
     {
         this._storage.TryRead(
-            resourceId ?? string.Empty,
+            resourceId ?? AtomicUpdateDictionary.DefaultKey,
             this,
             static (_, _, awaiter) => awaiter.Cancel(isExternalCancel: true)
         );
@@ -38,7 +38,7 @@ public class UseFirstCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         );
     }
 
-    private FlowSyncTaskAwaiter<T> SubscribeRemoval(string key, FlowSyncTaskAwaiter<T> awaiter)
+    private FlowSyncTaskAwaiter<T> SubscribeRemoval(object key, FlowSyncTaskAwaiter<T> awaiter)
     {
         awaiter.LazyOnCompleted(
             () => this._storage.TryRemove(key, currentAwaiter=> currentAwaiter == awaiter)

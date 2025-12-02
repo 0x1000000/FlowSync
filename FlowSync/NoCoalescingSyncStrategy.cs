@@ -6,12 +6,12 @@ public class NoCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
         IFlowSyncStarter<T> flowStarter,
-        string? resourceId)
+        object? resourceId)
     {
         return flowStarter.CreateAwaiter();
     }
 
-    public void Cancel(string? resourceId = null)
+    public void Cancel(object? resourceId = null)
     {
         //Do nothing
     }
