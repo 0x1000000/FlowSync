@@ -35,7 +35,7 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
     {
         if (cancellationToken.CanBeCanceled)
         {
-            this._cancellationTokenRegistration = cancellationToken.Register(this.OnExternalTokeCancellation);
+            this._cancellationTokenRegistration = cancellationToken.Register(this.OnExternalTokenCancellation);
         }
 
         this._asyncStateMachine = asyncStateMachine;
@@ -452,7 +452,7 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
         }        
     }
 
-    private void OnExternalTokeCancellation()
+    private void OnExternalTokenCancellation()
     {
         lock (this._syncObj)
         {

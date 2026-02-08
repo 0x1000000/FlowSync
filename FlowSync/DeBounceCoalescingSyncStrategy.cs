@@ -14,13 +14,17 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 
     private readonly AtomicUpdateDictionary<object, Entry> _storage = new();
 
-    private readonly int _durationMs;
+    private readonly TimeSpan _duration;
 
     private int _counter;
 
-    public DeBounceCoalescingSyncStrategy(int durationMs)
+    public DeBounceCoalescingSyncStrategy(TimeSpan duration)
     {
-        this._durationMs = durationMs;
+        if (duration == TimeSpan.Zero)
+        {
+            throw new InvalidOperationException("Duration must be greater than zero.");
+        }
+        this._duration = duration;
     }
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
@@ -51,7 +55,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
                         cancellationTokenSource
                     );
 
-                    Task.Delay(self._durationMs, cancellationTokenSource.Token)
+                    Task.Delay(self._duration, cancellationTokenSource.Token)
                         .ContinueWith(t => self.OnTimer(t, resourceId, newEntry));
 
                     return (newEntry, null);
@@ -75,8 +79,8 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
                         awaiterToCancel = existingEntry.CurrentAwaiter;
 
                         //New timer is required the previous flow already running.
-                        Task.Delay(self._durationMs, replacingEntry.CancellationTokenSource!.Token)
-                            .ContinueWith(t => self.OnTimer(t, key, replacingEntry));
+                        Task.Delay(self._duration, replacingEntry.CancellationTokenSource!.Token)
+                            .ContinueWith(t => self.OnTimer(t, key, replacingEntry), TaskScheduler.Default);
                     }
 
                     return (replacingEntry, awaiterToCancel);
@@ -153,7 +157,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
                 {
                     //Was replaced - it needs a new delay
                     Task.Delay(timeDiffMs, currentEntry.CancellationTokenSource!.Token)
-                        .ContinueWith(t => self.OnTimer(t, resourceId, currentEntry));
+                        .ContinueWith(t => self.OnTimer(t, resourceId, currentEntry), TaskScheduler.Default);
                     return currentEntry;
                 }
 

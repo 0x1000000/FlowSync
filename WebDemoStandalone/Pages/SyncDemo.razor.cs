@@ -56,7 +56,7 @@ public partial class SyncDemo : ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>
     IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseQueue() => new QueueCoalescingSyncStrategy<int>();
 
     IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseDeBounce()
-        => new DeBounceCoalescingSyncStrategy<int>(2000 /*2 Sec*/);
+        => new DeBounceCoalescingSyncStrategy<int>(TimeSpan.FromSeconds(2));
 
     private class StartsAndResult
     {

@@ -6,8 +6,7 @@
 
 @code
 {
-    readonly IFlowSyncStrategy<int> SyncStrategy = new DeBounceCoalescingSyncStrategy<int>(1500);
-
+    readonly IFlowSyncStrategy<int> SyncStrategy = new DeBounceCoalescingSyncStrategy<int>(TimeSpan.FromMilliseconds(1500));
 
     void IDisposable.Dispose()
     {
