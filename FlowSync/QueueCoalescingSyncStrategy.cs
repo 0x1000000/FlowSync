@@ -1,4 +1,4 @@
-﻿using FlowSync.Utils;
+using FlowSync.Utils;
 
 namespace FlowSync;
 
@@ -54,7 +54,7 @@ public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
     private AwaiterQueue SubscribeRemoval(object key, AwaiterQueue queue)
     {
         queue.Awaiter.OnCompleted(
-            () => this._storage.TryRemove(key, currentQueue => currentQueue == queue)
+            () => this._storage.TryScheduleRemoval(key, currentQueue => currentQueue == queue)
         );
         return queue;
     }
@@ -126,3 +126,4 @@ public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         }
     }
 }
+

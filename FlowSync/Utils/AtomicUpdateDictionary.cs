@@ -1,7 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-
-[assembly: InternalsVisibleTo("FlowSyncTest")]
+using System.Diagnostics.CodeAnalysis;
 
 namespace FlowSync.Utils;
 
@@ -77,7 +74,7 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
             }
             if (tailRemove != null)
             {
-                this.TryRemove(key, tailRemove);
+                this.TryScheduleRemoval(key, tailRemove);
             }
 
             if (found)
@@ -113,9 +110,9 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
         Func<TKey, TArg, TValue, TValue> updateValueFactory)
         => this.AddOrUpdate(
                 key,
-                (OriginalArgs: arg, Add: addValueFactory, Upadate: updateValueFactory),
+                (OriginalArgs: arg, Add: addValueFactory, Update: updateValueFactory),
                 static (key, exArgs) => (exArgs.Add(key, exArgs.OriginalArgs), default(object?)),
-                static (key, exArgs, value) => (exArgs.Upadate(key, exArgs.OriginalArgs, value), default)
+                static (key, exArgs, value) => (exArgs.Update(key, exArgs.OriginalArgs, value), default)
             )
             .Item1;
 
@@ -163,7 +160,7 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
 
         if (tailRemove != null)
         {
-            this.TryRemove(key, tailRemove);
+            this.TryScheduleRemoval(key, tailRemove);
         }
 
         return response;
@@ -227,7 +224,7 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
 
         if (tailRemove != null)
         {
-            this.TryRemove(key, tailRemove);
+            this.TryScheduleRemoval(key, tailRemove);
         }
 
         return response;
@@ -252,17 +249,20 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
         }
     }
 
-    public bool TryRemove(TKey key, Predicate<TValue> predicate)
+    public bool TryScheduleRemoval(TKey key, Predicate<TValue> predicate)
     {
         this._globalLock.EnterReadLock();
         try
         {
             if (this._dictionary.TryGetValue(key, out var entry))
             {
-                if (entry.ReadingCounter > 0)
+                lock (entry)
                 {
-                    entry.TailRemove = predicate;
-                    return false;
+                    if (entry.ReadingCounter > 0)
+                    {
+                        entry.TailRemove = predicate;
+                        return false;
+                    }
                 }
             }
         }
@@ -274,9 +274,15 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
         this._globalLock.EnterWriteLock();
         try
         {
-            if (this._dictionary.TryGetValue(key, out var entry) && predicate(entry.Value))
+            if (this._dictionary.TryGetValue(key, out var entry))
             {
-                this._dictionary.Remove(key);
+                lock (entry)
+                {
+                    if (predicate(entry.Value))
+                    {
+                        this._dictionary.Remove(key);
+                    }
+                }
             }
             return true;
         }
@@ -296,3 +302,4 @@ internal class AtomicUpdateDictionary
 {
     public static readonly object DefaultKey = new();
 }
+

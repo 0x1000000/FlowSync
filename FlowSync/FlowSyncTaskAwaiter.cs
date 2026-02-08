@@ -51,7 +51,7 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
     {
         get
         {
-            lock (_syncObj)
+            lock (this._syncObj)
             {
                 return this._isExternalCancel.HasValue && !this._isExternalCancel.Value;
             }
@@ -98,6 +98,20 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
         }
     }
 
+    /// <summary>
+    /// Indicates whether it has ever been started.
+    /// </summary>
+    public bool IsStarted
+    {
+        get
+        {
+            lock (this._syncObj)
+            {
+                return this._asyncStateMachine == null;
+            }
+        }
+    }
+
     /// Starts the execution of the async state machine associated with this awaiter.
     ///
     /// If <paramref name="startAsynchronously"/> is <c>true</c>, the state machine is scheduled to run
@@ -125,13 +139,14 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
             return this;
         }
 
+        IAsyncStateMachine? asyncStateMachine = null;
         lock (this._syncObj)
         {
             if (this._asyncStateMachine != null)
             {
                 try
                 {
-                    this._asyncStateMachine.MoveNext();
+                    asyncStateMachine = this._asyncStateMachine;
                 }
                 finally
                 {
@@ -140,6 +155,7 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
 
             }
         }
+        asyncStateMachine?.MoveNext();
         return this;
     }
 
@@ -149,19 +165,23 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
     /// </summary>
     public void OnCompleted(Action continuation)
     {
+        IAsyncStateMachine? asyncStateMachine = null;
+        Action<bool>? onStarted = null;
+        Action? continuationToRun;
+
         lock (this._syncObj)
         {
             if (this._asyncStateMachine != null)
             {
                 try
                 {
-                    this._asyncStateMachine.MoveNext();
+                    asyncStateMachine = this._asyncStateMachine;
                 }
                 finally
                 {
                     if (this._onStarted != null)
                     {
-                        this._onStarted(false);
+                        onStarted = this._onStarted;
                         this._onStarted = null;
                     }
 
@@ -177,8 +197,69 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
             {
                 this._continuation += continuation;
             }
+            this.LockUnsafeTryGetContinuation(out continuationToRun);
+        }
 
-            this.LockUnsafeTryCallContinuation();
+        Exception? singleException = null;
+        List<Exception>? exceptions = null;
+
+        try
+        {
+            asyncStateMachine?.MoveNext();
+        }
+        catch (Exception e)
+        {
+            singleException = e;
+        }
+
+        try
+        {
+            onStarted?.Invoke(false);
+        }
+        catch (Exception e)
+        {
+            if (singleException != null)
+            {
+                exceptions = [singleException, e];
+                singleException = null;
+            }
+            else
+            {
+                singleException = e;
+            }
+        }
+
+        // Promise-like behavior: if already completed, continuation runs inline on the caller thread.
+        // This enables synchronous resolution but allows re-entrancy and stack growth.
+        try
+        {
+            continuationToRun?.Invoke();
+        }
+        catch (Exception e)
+        {
+            if (singleException != null)
+            {
+                exceptions ??= [];
+                exceptions.Add(singleException);
+                singleException = null;
+            }
+            if (exceptions != null)
+            {
+                exceptions.Add(e);
+            }
+            else
+            {
+                singleException = e;
+            }
+        }
+
+        if (exceptions != null)
+        {
+            throw new AggregateException(exceptions);
+        }
+        if (singleException != null)
+        {
+            throw singleException;
         }
     }
 
@@ -188,6 +269,8 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
     /// </summary>
     public void LazyOnCompleted(Action continuation)
     {
+        Action? continuationToRun;
+
         lock (this._syncObj)
         {
             if (this._continuation == null)
@@ -199,8 +282,11 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
                 this._continuation += continuation;
             }
 
-            this.LockUnsafeTryCallContinuation();
+            this.LockUnsafeTryGetContinuation(out continuationToRun);
         }
+
+        // Promise-like behavior: if already completed, continuation runs inline.
+        continuationToRun?.Invoke();
     }
 
     /// <summary>
@@ -208,15 +294,16 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
     /// </summary>
     public void OnStarted(Action<bool> onStarted)
     {
+        bool? immediateResult = null;
         lock (this._syncObj)
         {
             if (this._isCompleted)
             {
-                onStarted(true);
+                immediateResult = true;
             }
             else if (this._continuation != null)
             {
-                onStarted(false);
+                immediateResult = false;
             }
             else
             {
@@ -230,6 +317,11 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
                 }
             }
         }
+
+        if (immediateResult.HasValue)
+        {
+            onStarted(immediateResult.Value);
+        }
     }
 
     internal CancellationToken CancellationToken => this._syncObj.Token;
@@ -237,6 +329,8 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
     internal void SetResult(T result, bool fromLeaderAwaiter = false)
     {
         FlowSyncTaskAwaiter<T>? callFollower = null;
+        Action? continuationToRun = null;
+
         lock (this._syncObj)
         {
             if (!this._isCompleted)
@@ -246,9 +340,19 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
                     this._result = result;
                     callFollower = this._followerRef;
                     this.LockUnsafeSetCompletedAndCleanUp();
-                    this.LockUnsafeTryCallContinuation();
+                    this.LockUnsafeTryGetContinuation(out continuationToRun);
                 }
             }
+        }
+
+        try
+        {
+            continuationToRun?.Invoke();
+        }
+        catch(Exception exception) when(callFollower != null)
+        {
+            callFollower.SetException(exception, fromLeaderAwaiter: true);
+            return;
         }
 
         callFollower?.SetResult(result, fromLeaderAwaiter: true);
@@ -257,6 +361,7 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
     internal void SetException(Exception exception, bool fromLeaderAwaiter = false)
     {
         FlowSyncTaskAwaiter<T>? callFollower = null;
+        Action? continuationToRun = null;
         lock (this._syncObj)
         {
             if (!this._isCompleted)
@@ -266,32 +371,53 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
                     this._exception = exception;
                     callFollower = this._followerRef;
                     this.LockUnsafeSetCompletedAndCleanUp();
-                    this.LockUnsafeTryCallContinuation();
+                    this.LockUnsafeTryGetContinuation(out continuationToRun);
                 }
             }
         }
 
+        try
+        {
+            continuationToRun?.Invoke();
+        }
+        catch (Exception innerException) when (callFollower != null)
+        {
+            // If the continuation throws, we want to propagate that exception in addition to the original one.
+            callFollower.SetException(new AggregateException(innerException, exception), fromLeaderAwaiter: true);
+            return;
+        }
         callFollower?.SetException(exception, fromLeaderAwaiter: true);
     }
 
     internal void Cancel(bool isExternalCancel)
     {
         FlowSyncTaskAwaiter<T>? callFollower = null;
-        lock (this)
+        Action? continuationToRun = null;
+        lock (this._syncObj)
         {
             if (!this._isCompleted)
             {
                 this._isExternalCancel = isExternalCancel;
                 this._isCompleted = true;//Ignore fallback from this._syncObj.Cancel();
+                // Promise-like behavior: cancellation callbacks execute inline when Cancel is called.
+                // This can re-enter user code while locks are held.
                 this._syncObj.Cancel();
-                //if (!this._isFollower)
-                {
-                    this._exception = new OperationCanceledException();
-                    callFollower = this._followerRef;
-                    this.LockUnsafeSetCompletedAndCleanUp();
-                    this.LockUnsafeTryCallContinuation();
-                }
+
+                this._exception = new OperationCanceledException();
+                callFollower = this._followerRef;
+                this.LockUnsafeSetCompletedAndCleanUp();
+                this.LockUnsafeTryGetContinuation(out continuationToRun);
             }
+        }
+
+        try
+        {
+            continuationToRun?.Invoke();
+        }
+        catch (Exception) when(callFollower != null)
+        {
+            callFollower.Cancel(isExternalCancel);
+            throw;
         }
 
         callFollower?.Cancel(isExternalCancel);
@@ -299,26 +425,31 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
 
     internal void TryToSetCompleted(FlowSyncTaskAwaiter<T> target)
     {
+        var isCompleted = false;
         lock (this._syncObj)
         {
             if (this._isCompleted)
             {
-                lock (target._syncObj)
+                isCompleted = true;
+            }
+        }
+        if (isCompleted)
+        {
+            lock (target._syncObj)
+            {
+                if (!target._isCompleted)
                 {
-                    if (!target._isCompleted)
+                    if (this._exception != null)
                     {
-                        if (this._exception != null)
-                        {
-                            target.SetException(this._exception);
-                        }
-                        else
-                        {
-                            target.SetResult(this._result!);
-                        }
+                        target.SetException(this._exception);
+                    }
+                    else
+                    {
+                        target.SetResult(this._result!);
                     }
                 }
             }
-        }
+        }        
     }
 
     private void OnExternalTokeCancellation()
@@ -328,6 +459,7 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
             if (!this._isCompleted)
             {
                 this._isExternalCancel = true;
+                // CancellationTokenSource.Cancel runs callbacks inline.
                 this._syncObj.Cancel();
             }
         }
@@ -350,6 +482,7 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
                 this._cancellationTokenRegistration = null;
                 this._asyncStateMachine = null;
                 this._isExternalCancel = false;
+                // Cancel internal flow immediately when becoming a follower (promise-like sync cancel).
                 this._syncObj.Cancel();
             }
         }
@@ -366,18 +499,13 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
         this._asyncStateMachine = null;
     }
 
-    private void LockUnsafeTryCallContinuation()
+    private void LockUnsafeTryGetContinuation(out Action? continuation)
     {
+        continuation = null;
         if (this._isCompleted && this._continuation != null)
         {
-            try
-            {
-                this._continuation();
-            }
-            finally
-            {
-                this._continuation = null;
-            }
+            continuation = this._continuation;
+            this._continuation = null;
         }
     }
 }

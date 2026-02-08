@@ -9,10 +9,10 @@ namespace FlowSyncTest;
 public class FlowSyncTestQueueTest
 {
     [Test]
-    public Task Basic() => Basic(useRegularTask: false);
+    public Task Basic() => this.Basic(useRegularTask: false);
 
     [Test]
-    public Task BasicRegularTask() => Basic(useRegularTask: true);
+    public Task BasicRegularTask() => this.Basic(useRegularTask: true);
 
     private async Task Basic(bool useRegularTask)
     {

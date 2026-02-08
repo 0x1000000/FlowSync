@@ -1,4 +1,4 @@
-﻿using FlowSync.Utils;
+using FlowSync.Utils;
 
 namespace FlowSync;
 
@@ -218,12 +218,12 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 
     private void OnRemoteCompleted(object resourceId, FlowSyncTaskAwaiter<T> remote)
     {
-        if (!this._storage.TryRemove(resourceId, currentEntry => currentEntry.Remote == remote))
+        if (!this._storage.TryScheduleRemoval(resourceId, currentEntry => currentEntry.Remote == remote))
         {
             Task.Run(
                 () =>
                 {
-                    this._storage.TryRemove(
+                    this._storage.TryScheduleRemoval(
                         resourceId,
                         currentEntry => currentEntry.Remote == remote
                     );
@@ -234,3 +234,4 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 
     private int GenId() => Interlocked.Increment(ref this._counter);
 }
+

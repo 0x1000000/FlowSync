@@ -1,4 +1,4 @@
-﻿using FlowSync.Utils;
+using FlowSync.Utils;
 
 namespace FlowSyncTest;
 
@@ -98,7 +98,7 @@ internal class AtomicUpdateDictionaryStressTest
                         array,
                         static (index, array, _) =>
                         {
-                            array.TryRemove(
+                            array.TryScheduleRemoval(
                                 index,
                                 _ =>
                                 {
@@ -114,3 +114,4 @@ internal class AtomicUpdateDictionaryStressTest
 
     }
 }
+

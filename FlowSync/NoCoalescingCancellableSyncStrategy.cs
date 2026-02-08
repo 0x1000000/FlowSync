@@ -1,4 +1,4 @@
-﻿using FlowSync.Utils;
+using FlowSync.Utils;
 
 namespace FlowSync;
 
@@ -61,7 +61,7 @@ public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
     private FlowSyncTaskAwaiter<T> SubscribeRemoval(object key, FlowSyncTaskAwaiter<T> awaiter, CancellationTokenSource source)
     {
         awaiter.LazyOnCompleted(
-            () => this._storage.TryRemove(key, currentSource => currentSource == source)
+            () => this._storage.TryScheduleRemoval(key, currentSource => currentSource == source)
         );
         return awaiter;
     }
@@ -71,3 +71,4 @@ public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
         this._storage.Dispose();
     }
 }
+

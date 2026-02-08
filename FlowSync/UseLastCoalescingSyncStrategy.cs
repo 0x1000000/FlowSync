@@ -1,4 +1,4 @@
-﻿using FlowSync.Utils;
+using FlowSync.Utils;
 
 namespace FlowSync;
 
@@ -44,7 +44,7 @@ public class UseLastCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
     private FlowSyncTaskAwaiter<T> SubscribeRemoval(object key, FlowSyncTaskAwaiter<T> awaiter)
     {
         awaiter.LazyOnCompleted(
-            () => this._storage.TryRemove(key, currentAwaiter => currentAwaiter == awaiter)
+            () => this._storage.TryScheduleRemoval(key, currentAwaiter => currentAwaiter == awaiter)
         );
         return awaiter;
     }
@@ -54,3 +54,4 @@ public class UseLastCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         this._storage.Dispose();
     }
 }
+
