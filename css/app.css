@@ -1,6 +1,6 @@
 :root {
-    --main-color: #FF6347;
-    --focus-glow: rgba(255, 99, 71, 0.3);
+    --main-color: #5C6BC0; /* muted indigo */
+    --focus-glow: rgba(92, 107, 192, 0.3);    
     --main-color-control-bg: #f5f5f5;
     --background-1: #F1F1F1;
     --background-2: #A1A1A1;
