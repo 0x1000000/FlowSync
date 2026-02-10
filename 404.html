@@ -11,6 +11,17 @@
     <link href="manifest.webmanifest" rel="manifest" />
     <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <script type="text/javascript">
+        // The exact case-sensitive name of your repo
+        var repoName = 'FlowSync'; 
+        var path = window.location.pathname;
+
+        // Check if the path starts with the wrong case
+        if (path.toLowerCase().startsWith('/' + repoName.toLowerCase())) {
+            var newPath = '/' + repoName + path.substring(repoName.length + 1);
+            window.location.replace(window.location.origin + newPath);
+        }
+    </script>
 </head>
 
 <body>
