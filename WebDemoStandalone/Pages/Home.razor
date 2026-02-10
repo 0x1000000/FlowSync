@@ -15,15 +15,15 @@
     <p>
         This demo explores four coalescing strategies that help streamline async workflows by customizing how overlapping calls are handled:
         <ul>
-            <li><a href="/demo/UseFirst"><strong>Use First</strong></a> – <em>Run once, reuse result</em></li>
-            <li><a href="/demo/UseLast"><strong>Use Last</strong></a> – <em>Cancel previous, keep latest</em></li>
-            <li><a href="/demo/Queue"><strong>Queue (with Use Last)</strong></a> – <em>One at a time, return last</em></li>
-            <li><a href="/demo/DeBounce"><strong>Use Last with Debounce</strong></a> – <em>Wait for quiet, then run</em></li>
+            <li><a href="demo/UseFirst"><strong>Use First</strong></a> – <em>Run once, reuse result</em></li>
+            <li><a href="demo/UseLast"><strong>Use Last</strong></a> – <em>Cancel previous, keep latest</em></li>
+            <li><a href="demo/Queue"><strong>Queue (with Use Last)</strong></a> – <em>One at a time, return last</em></li>
+            <li><a href="demo/DeBounce"><strong>Use Last with Debounce</strong></a> – <em>Wait for quiet, then run</em></li>
         </ul>
     </p>
     <p>
         Curious what happens without any strategy at all? 
-        <a href="/demo/NoSync">See the “No Synchronization” demo →</a>
+        <a href="demo/NoSync">See the “No Synchronization” demo →</a>
     </p>
     <h3>Realistic Demo</h3>
     <p>
@@ -31,9 +31,9 @@
         When user input triggers overlapping requests, you’ll see how sync strategies help preserve consistency.
     </p>
     <ul>
-        <li><a href="/grid-nofix"><strong>No Sync</strong></a> – <em>Observe inconsistent results due to race conditions</em></li>
-        <li><a href="/grid-use-last"><strong>Use Last</strong></a> – <em>Ensures only the latest request completes</em></li>
-        <li><a href="/grid-de-bounce"><strong>Debounce</strong></a> – <em>Waits for quiet time before executing</em></li>
+        <li><a href="grid-nofix"><strong>No Sync</strong></a> – <em>Observe inconsistent results due to race conditions</em></li>
+        <li><a href="grid-use-last"><strong>Use Last</strong></a> – <em>Ensures only the latest request completes</em></li>
+        <li><a href="grid-de-bounce"><strong>Debounce</strong></a> – <em>Waits for quiet time before executing</em></li>
     </ul>
 </section>
 @code {

@@ -13,7 +13,9 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
+      "commandLineArgs": "--pathbase=/FlowSync",
+      "launchUrl": "FlowSync",
+      "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/FlowSync/_framework/debug/ws-proxy?browser={browserInspectUri}",
       "applicationUrl": "http://localhost:5129",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
