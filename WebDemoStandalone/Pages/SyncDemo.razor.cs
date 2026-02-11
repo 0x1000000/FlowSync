@@ -42,7 +42,11 @@ public partial class SyncDemo : ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>
     private StartsAndResult StartsAndResult1 { get; } = new StartsAndResult();
     private StartsAndResult StartsAndResult2 { get; } = new StartsAndResult();
 
-    void IDisposable.Dispose() => this.FlowSyncStrategy.Dispose();
+    void IDisposable.Dispose()
+    {
+        this.FlowSyncStrategy.CancelAll();
+        this.FlowSyncStrategy.Dispose();
+    }
 
     IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseNoSync()
         => new NoCoalescingCancellableSyncStrategy<int>();

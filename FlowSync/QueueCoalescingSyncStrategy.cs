@@ -29,10 +29,10 @@ public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
             .Awaiter;
     }
 
-    public void Cancel(object? resourceId = null)
+    public void Cancel(object resourceId)
     {
         this._storage.TryRead(
-            resourceId ?? AtomicUpdateDictionary.DefaultKey,
+            resourceId,
             this,
             static (_, _, e) => e.Cancel()
         );

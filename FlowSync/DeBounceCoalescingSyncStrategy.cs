@@ -20,7 +20,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 
     public DeBounceCoalescingSyncStrategy(TimeSpan duration)
     {
-        if (duration == TimeSpan.Zero)
+        if (duration <= TimeSpan.Zero)
         {
             throw new InvalidOperationException("Duration must be greater than zero.");
         }
@@ -92,10 +92,10 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         return result.Remote;
     }
 
-    public void Cancel(object? resourceId = null)
+    public void Cancel(object resourceId)
     {
         this._storage.TryRead(
-            resourceId ?? AtomicUpdateDictionary.DefaultKey,
+            resourceId,
             this,
             static (_, _, e) =>
             {

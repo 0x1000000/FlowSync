@@ -1,4 +1,6 @@
-﻿namespace FlowSync;
+﻿using FlowSync.Utils;
+
+namespace FlowSync;
 
 /// <summary>
 /// Defines how concurrent operations are coalesced for a given resource.
@@ -15,11 +17,16 @@ public interface IFlowSyncStrategy<T> : IDisposable
         IFlowSyncStarter<T> flowStarter,
         object? resourceId = null);
 
+
+    /// <summary>
+    /// Cancels any in-flight or queued work for the default resource.
+    /// </summary>
+    void CancelDefaultResource(object resourceId) => this.Cancel(AtomicUpdateDictionary.DefaultKey);
+
     /// <summary>
     /// Cancels any in-flight or queued work for the specified resource.
     /// </summary>
-    /// <param name="resourceId">Optional key; when omitted, the strategy may cancel a default resource.</param>
-    void Cancel(object? resourceId = null);
+    void Cancel(object resourceId);
 
     /// <summary>
     /// Cancels all in-flight or queued work managed by this strategy.

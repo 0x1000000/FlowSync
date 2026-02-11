@@ -292,6 +292,63 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
         }
     }
 
+    internal async ValueTask<bool> TryWaitForEmptyAsync(TimeSpan timeout)
+    {
+        if (timeout < TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
+        {
+            throw new ArgumentOutOfRangeException(nameof(timeout));
+        }
+
+        var hasDeadline = timeout != Timeout.InfiniteTimeSpan;
+        var deadlineMs = hasDeadline ? Environment.TickCount64 + (long)Math.Ceiling(timeout.TotalMilliseconds) : 0;
+        var spinner = new SpinWait();
+
+        while (true)
+        {
+            this._globalLock.EnterReadLock();
+            try
+            {
+                if (this._dictionary.Count == 0)
+                {
+                    return true;
+                }
+            }
+            finally
+            {
+                this._globalLock.ExitReadLock();
+            }
+
+            if (hasDeadline)
+            {
+                var remainingMs = deadlineMs - Environment.TickCount64;
+                if (remainingMs <= 0)
+                {
+                    return false;
+                }
+
+                if (spinner.NextSpinWillYield)
+                {
+                    await Task.Delay((int)Math.Min(remainingMs, 20)).ConfigureAwait(false);
+                }
+                else
+                {
+                    spinner.SpinOnce();
+                }
+            }
+            else
+            {
+                if (spinner.NextSpinWillYield)
+                {
+                    await Task.Delay(20).ConfigureAwait(false);
+                }
+                else
+                {
+                    spinner.SpinOnce();
+                }
+            }
+        }
+    }
+
     public void Dispose()
     {
         this._globalLock.Dispose();

@@ -4,13 +4,14 @@ namespace FlowSync;
 
 public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
 {
-    private readonly AtomicUpdateDictionary<object, CancellationTokenSource> _storage = new();
+    private record struct Entry(HashSet<FlowSyncTaskAwaiter<T>> Awaiters, CancellationTokenSource CancellationTokenSource);
+    private readonly AtomicUpdateDictionary<object, Entry> _storage = new();
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
         IFlowSyncStarter<T> flowStarter,
         object? resourceId)
     {
-        object key = resourceId ?? AtomicUpdateDictionary.DefaultKey;
+        var key = resourceId ?? AtomicUpdateDictionary.DefaultKey;
         var (_, result) = this._storage.AddOrUpdate(
             key: key,
             arg: (this, flowStarter),
@@ -18,30 +19,41 @@ public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
             {
                 var (self, flowStarter) = args;
                 var cts = new CancellationTokenSource();
-                var result = self.SubscribeRemoval(key, flowStarter.CreateAwaiter(cts.Token), cts);
-                return (cts, result);
+
+                var awaiter = flowStarter.CreateAwaiter(cts.Token);
+                HashSet<FlowSyncTaskAwaiter<T>> flowSyncTaskAwaiters = [awaiter];
+                var result = self.SubscribeRemoval(key, awaiter, flowSyncTaskAwaiters);
+
+                return (new Entry(flowSyncTaskAwaiters, cts), result);
             },
-            updateValueFactory: static (key, args, cts) =>
+            updateValueFactory: static (key, args, entry) =>
             {
                 var (self, flowStarter) = args;
-                var result = self.SubscribeRemoval(key, flowStarter.CreateAwaiter(cts.Token), cts);
-                return (cts, result);
+                var result = self.SubscribeRemoval(key, flowStarter.CreateAwaiter(entry.CancellationTokenSource.Token), entry.Awaiters);
+                entry.Awaiters.Add(result);
+                return (entry, result);
             }
         );
 
         return result;
     }
 
-    public void Cancel(object? resourceId = null)
+    public void CancelDefaultResource(object resourceId) => this.Cancel(AtomicUpdateDictionary.DefaultKey);
+
+    public void Cancel(object resourceId)
     {
         this._storage.TryUpdate(
-            key: resourceId ?? AtomicUpdateDictionary.DefaultKey,
+            key: resourceId,
             arg: default(object?),
-            updateValueFactory: static (_, _, cts) =>
+            updateValueFactory: static (_, _, entry) =>
             {
-                cts.Cancel();
-                cts.Dispose();
-                return new CancellationTokenSource();
+                entry.CancellationTokenSource.Cancel();
+                entry.CancellationTokenSource.Dispose();
+                foreach (var awaiter in entry.Awaiters)
+                {
+                    awaiter.Cancel(true);
+                }
+                return entry;
             },
             newValue: out _
         );
@@ -50,18 +62,39 @@ public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
     public void CancelAll()
     {
         this._storage.ReadAll(this,
-            (_, _, cts) =>
+            (_, _, entry) =>
             {
-                cts.Cancel();
-                cts.Dispose();
+                entry.CancellationTokenSource.Cancel();
+                entry.CancellationTokenSource.Dispose();
+                foreach (var awaiter in entry.Awaiters)
+                {
+                    awaiter.Cancel(true);
+                }
             });
     }
 
-
-    private FlowSyncTaskAwaiter<T> SubscribeRemoval(object key, FlowSyncTaskAwaiter<T> awaiter, CancellationTokenSource source)
+    private FlowSyncTaskAwaiter<T> SubscribeRemoval(object key, FlowSyncTaskAwaiter<T> awaiter, HashSet<FlowSyncTaskAwaiter<T>> list)
     {
         awaiter.LazyOnCompleted(
-            () => this._storage.TryScheduleRemoval(key, currentSource => currentSource == source)
+            () =>
+            {
+                this._storage.TryUpdate(
+                    key,
+                    (awaiter, list),
+                    static (_, args, entry) =>
+                    {
+                        var (awaiter, list) = args;
+                        if (entry.Awaiters == list)
+                        {
+                            entry.Awaiters.Remove(awaiter);
+                        }
+
+                        return entry;
+                    },
+                    out _
+                );
+                this._storage.TryScheduleRemoval(key, entry => entry.Awaiters == list && list.Count == 0);
+            }
         );
         return awaiter;
     }

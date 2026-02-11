@@ -21,10 +21,10 @@ public class UseFirstCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         );
     }
 
-    public void Cancel(object? resourceId = null)
+    public void Cancel(object resourceId)
     {
         this._storage.TryRead(
-            resourceId ?? AtomicUpdateDictionary.DefaultKey,
+            resourceId,
             this,
             static (_, _, awaiter) => awaiter.Cancel(isExternalCancel: true)
         );
