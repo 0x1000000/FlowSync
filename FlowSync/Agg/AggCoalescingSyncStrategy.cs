@@ -2,6 +2,10 @@ using FlowSync.Utils;
 
 namespace FlowSync;
 
+/// <summary>
+/// Aggregate coalescing strategy that buffers incoming calls for a short window, merges their arguments,
+/// and executes batches sequentially per group.
+/// </summary>
 public class AggCoalescingSyncStrategy<T, TArg, TAcc> : IFlowSyncAggStrategy<T, TArg, TAcc>
 {
     private enum EntryStatus
@@ -34,6 +38,15 @@ public class AggCoalescingSyncStrategy<T, TArg, TAcc> : IFlowSyncAggStrategy<T, 
     private readonly Func<TAcc, TArg, TAcc> _aggregator;
     private readonly TimeSpan _bufferTime;
 
+    /// <summary>
+    /// Initializes aggregate coalescing strategy.
+    /// </summary>
+    /// <param name="seedFactory">
+    /// Optional accumulator seed factory. Receives the previous accumulator (or <c>null</c> for the first batch)
+    /// and current batch index.
+    /// </param>
+    /// <param name="aggregator">Accumulates an incoming argument into the current accumulator.</param>
+    /// <param name="bufferTime">Buffer window before starting a batch.</param>
     public AggCoalescingSyncStrategy(Func<TAcc?, int, TAcc>? seedFactory, Func<TAcc, TArg, TAcc> aggregator, TimeSpan bufferTime)
     {
         if (bufferTime < TimeSpan.Zero)
@@ -46,6 +59,11 @@ public class AggCoalescingSyncStrategy<T, TArg, TAcc> : IFlowSyncAggStrategy<T, 
         this._bufferTime = bufferTime;
     }
 
+    /// <summary>
+    /// Enters aggregate coalescing for the specified group.
+    /// Calls entering during the buffer window are merged into one batch.
+    /// Calls arriving while a batch is running are merged into the next batch for the same group.
+    /// </summary>
     public FlowSyncTaskAwaiter<T> EnterSyncSection(IFlowSyncAggStarter<T, TAcc> flowStarter, TArg arg, object? groupKey = null)
     {
         groupKey ??= AtomicUpdateDictionary.DefaultKey;
@@ -169,9 +187,18 @@ public class AggCoalescingSyncStrategy<T, TArg, TAcc> : IFlowSyncAggStrategy<T, 
         return result;
     }
 
+    /// <summary>
+    /// Cancels in-flight or queued work for a specific group.
+    /// </summary>
     public void Cancel(object groupKey) => this._storage.TryRead(groupKey, this, static (_, _, e) => e.CancelUnsafe());
 
+    /// <summary>
+    /// Cancels all in-flight or queued work for all groups.
+    /// </summary>
     public void CancelAll() => this._storage.ReadAll(this, static (_, _, e) => e.CancelUnsafe());
 
+    /// <summary>
+    /// Disposes strategy state storage.
+    /// </summary>
     public void Dispose() => this._storage.Dispose();
 }

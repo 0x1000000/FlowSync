@@ -2,13 +2,24 @@
 
 namespace FlowSync;
 
+/// <summary>
+/// Entry point for creating <see cref="FlowSyncTask{T}"/> from regular <see cref="Task"/> factories
+/// and for reading flow cancellation context inside FlowSync methods.
+/// </summary>
 public class FlowSyncTask
 {
+    /// <summary>
+    /// Retrieves the current flow cancellation context inside an async method that returns <see cref="FlowSyncTask{T}"/>.
+    /// The returned token is canceled both for explicit external cancellation and strategy-enforced local cancellation.
+    /// </summary>
     public static CancellationTokenAwaiter GetCancellationContext()
     {
         return new CancellationTokenAwaiter();
     }
 
+    /// <summary>
+    /// Wraps a regular <see cref="Task"/> factory into a <see cref="FlowSyncTask{T}"/> so it can participate in coalescing.
+    /// </summary>
     public static FlowSyncTask<T> Create<T>(Func<CancellationToken, Task<T>> taskFactory)
     {
         return new FlowSyncTask<T>(new FlowSyncTaskFactory<T>(taskFactory));
@@ -65,6 +76,9 @@ public class FlowSyncTask
 
 }
 
+/// <summary>
+/// Lazy awaitable flow that can be coalesced by a strategy.
+/// </summary>
 [AsyncMethodBuilder(typeof(FlowSyncSyncTaskMethodBuilder<>))]
 public readonly struct FlowSyncTask<T>
 {
@@ -75,11 +89,19 @@ public readonly struct FlowSyncTask<T>
         this._factory = factory;
     }
 
+    /// <summary>
+    /// Enters coalescing with the strategy default group key.
+    /// Returns a lazy awaiter; underlying work starts when awaited, started, or converted via <c>StartAsTask</c>.
+    /// </summary>
     public FlowSyncTaskAwaiter<T> CoalesceInDefaultGroupUsing(IFlowSyncStrategy<T> syncStrategy)
     {
         return syncStrategy.EnterSyncSection(this._factory);
     }
 
+    /// <summary>
+    /// Enters coalescing for the specified group key.
+    /// Returns a lazy awaiter; underlying work starts when awaited, started, or converted via <c>StartAsTask</c>.
+    /// </summary>
     public FlowSyncTaskAwaiter<T> CoalesceInGroupUsing(IFlowSyncStrategy<T> syncStrategy, object groupKey)
     {
         if (groupKey == null)
@@ -89,6 +111,9 @@ public readonly struct FlowSyncTask<T>
         return syncStrategy.EnterSyncSection(this._factory, groupKey);
     }
 
+    /// <summary>
+    /// Starts this flow without coalescing and returns it as <see cref="Task{TResult}"/>.
+    /// </summary>
     public Task<T> StartAsTask(bool startAsynchronously = false, bool runContinuationsAsynchronously = true)
     {
         return this.CreateWithoutCoalescing().StartAsTask(startAsynchronously, runContinuationsAsynchronously);

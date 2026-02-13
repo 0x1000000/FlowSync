@@ -2,6 +2,10 @@ using FlowSync.Utils;
 
 namespace FlowSync;
 
+/// <summary>
+/// Coalescing strategy where the first in-flight call for a group executes,
+/// and overlapping calls reuse that same in-flight result.
+/// </summary>
 public class UseFirstCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 {
     private readonly AtomicUpdateDictionary<object, FlowSyncTaskAwaiter<T>> _storage = new();

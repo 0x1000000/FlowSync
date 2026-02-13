@@ -2,6 +2,9 @@ using FlowSync.Utils;
 
 namespace FlowSync;
 
+/// <summary>
+/// Coalescing strategy that queues calls per group and processes them sequentially.
+/// </summary>
 public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 {
     private readonly AtomicUpdateDictionary<object, AwaiterQueue> _storage = new();

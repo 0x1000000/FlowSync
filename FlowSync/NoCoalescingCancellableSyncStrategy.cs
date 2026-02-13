@@ -2,6 +2,10 @@ using FlowSync.Utils;
 
 namespace FlowSync;
 
+/// <summary>
+/// Non-coalescing strategy that keeps calls independent while still allowing
+/// group-level and global cancellation of all currently tracked awaiters.
+/// </summary>
 public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
 {
     private record struct Entry(HashSet<FlowSyncTaskAwaiter<T>> Awaiters, CancellationTokenSource CancellationTokenSource);

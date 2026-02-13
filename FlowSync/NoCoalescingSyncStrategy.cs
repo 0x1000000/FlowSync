@@ -1,5 +1,9 @@
 ﻿namespace FlowSync;
 
+/// <summary>
+/// Pass-through strategy that performs no coalescing and no strategy-level cancellation.
+/// Each call starts its own independent flow.
+/// </summary>
 public class NoCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 {
     public static readonly NoCoalescingSyncStrategy<T> Instance = new();

@@ -2,8 +2,14 @@
 
 namespace FlowSync;
 
+/// <summary>
+/// Entry point for creating aggregated FlowSync tasks from regular <see cref="Task"/> factories.
+/// </summary>
 public class FlowSyncAggTask
 {
+    /// <summary>
+    /// Wraps a regular aggregated task factory into a <see cref="FlowSyncAggTask{T,TAcc}"/>.
+    /// </summary>
     public static FlowSyncAggTask<T, TAcc> Create<T, TAcc>(Func<TAcc, CancellationToken, Task<T>> taskFactory)
     {
         return new FlowSyncAggTask<T, TAcc>(new FlowSyncTaskFactory<T, TAcc>(taskFactory));
@@ -62,6 +68,9 @@ public class FlowSyncAggTask
     }
 }
 
+/// <summary>
+/// Lazy awaitable aggregated flow that can be coalesced by an aggregate strategy.
+/// </summary>
 public readonly struct FlowSyncAggTask<T, TAcc>
 {
     private readonly IFlowSyncAggStarter<T, TAcc> _starter;
@@ -71,11 +80,19 @@ public readonly struct FlowSyncAggTask<T, TAcc>
         this._starter = starter;
     }
 
+    /// <summary>
+    /// Enters aggregate coalescing with the strategy default group key.
+    /// Returns a lazy awaiter.
+    /// </summary>
     public FlowSyncTaskAwaiter<T> CoalesceInDefaultGroupUsing<TArg>(IFlowSyncAggStrategy<T, TArg, TAcc> syncStrategy, TArg arg)
     {
         return syncStrategy.EnterSyncSection(this._starter, arg);
     }
 
+    /// <summary>
+    /// Enters aggregate coalescing for the specified group key.
+    /// Returns a lazy awaiter.
+    /// </summary>
     public FlowSyncTaskAwaiter<T> CoalesceInGroupUsing<TArg>(IFlowSyncAggStrategy<T, TArg, TAcc> syncStrategy, TArg arg, object groupKey)
     {
         if (groupKey == null)

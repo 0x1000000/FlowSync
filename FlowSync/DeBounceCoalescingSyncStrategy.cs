@@ -2,6 +2,10 @@ using FlowSync.Utils;
 
 namespace FlowSync;
 
+/// <summary>
+/// Debounce coalescing strategy that delays execution for a fixed quiet period and
+/// keeps only the latest overlapping call per group.
+/// </summary>
 public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 {
     private record struct Entry(
@@ -18,6 +22,9 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 
     private int _counter;
 
+    /// <summary>
+    /// Initializes debounce strategy with the required quiet period.
+    /// </summary>
     public DeBounceCoalescingSyncStrategy(TimeSpan duration)
     {
         if (duration <= TimeSpan.Zero)

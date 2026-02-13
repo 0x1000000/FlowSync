@@ -4,6 +4,10 @@ using System.Runtime.ExceptionServices;
 
 namespace FlowSync;
 
+/// <summary>
+/// Lazy awaiter used by FlowSync flows.
+/// It carries completion state, strategy/local cancellation context, follower propagation, and explicit start semantics.
+/// </summary>
 public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellationContext
 {
     private readonly CancellationTokenSource _syncObj = new();
