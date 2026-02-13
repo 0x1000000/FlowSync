@@ -5,13 +5,13 @@ public class NoCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
     public static readonly NoCoalescingSyncStrategy<T> Instance = new();
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
-        IFlowSyncStarter<T> flowStarter,
-        object? resourceId)
+        IFlowSyncFactory<T> flowFactory,
+        object? groupKey)
     {
-        return flowStarter.CreateAwaiter();
+        return flowFactory.CreateAwaiter();
     }
 
-    public void Cancel(object? resourceId = null)
+    public void Cancel(object? groupKey = null)
     {
         //Do nothing
     }
@@ -21,7 +21,7 @@ public class NoCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         //Do Nothing
     }
 
-    public bool IsRunning(string? resourceId = null)
+    public bool IsRunning(string? groupKey = null)
     {
         //Do nothing
         return false;

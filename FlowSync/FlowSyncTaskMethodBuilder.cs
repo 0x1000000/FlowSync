@@ -2,7 +2,7 @@
 
 namespace FlowSync;
 
-public class FlowSyncSyncTaskMethodBuilder<T> : IFlowSyncStarter<T>
+public class FlowSyncSyncTaskMethodBuilder<T> : IFlowSyncFactory<T>
 {
     private FlowSyncTaskAwaiter<T>? _awaiter;
 

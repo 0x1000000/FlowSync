@@ -7,12 +7,12 @@ public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
     private readonly AtomicUpdateDictionary<object, AwaiterQueue> _storage = new();
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
-        IFlowSyncStarter<T> flowStarter,
-        object? resourceId)
+        IFlowSyncFactory<T> flowFactory,
+        object? groupKey)
     {
         return this._storage.AddOrUpdate(
-                key: resourceId ?? AtomicUpdateDictionary.DefaultKey,
-                arg: (self: this, flowStarter),
+                key: groupKey ?? AtomicUpdateDictionary.DefaultKey,
+                arg: (self: this, flowStarter: flowFactory),
                 addValueFactory: static (k, args) =>
                     args.self.SubscribeRemoval(k, new AwaiterQueue(args.flowStarter.CreateAwaiter())),
                 updateValueFactory: static (k, args, queue) =>
@@ -27,28 +27,6 @@ public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
                 }
             )
             .Awaiter;
-    }
-
-    public void Cancel(object resourceId)
-    {
-        this._storage.TryRead(
-            resourceId,
-            this,
-            static (_, _, e) => e.Cancel()
-        );
-    }
-
-    public void CancelAll()
-    {
-        this._storage.ReadAll(
-            this,
-            static (_, _, e) => e.Cancel()
-        );
-    }
-
-    public void Dispose()
-    {
-        this._storage.Dispose();
     }
 
     private AwaiterQueue SubscribeRemoval(object key, AwaiterQueue queue)
@@ -69,7 +47,7 @@ public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         {
             this._queue = new Queue<FlowSyncTaskAwaiter<T>>();
             this._queue.Enqueue(first);
-            this.Awaiter = this.ProcessQueue().CoalesceUsing(new NoCoalescingCancellableSyncStrategy<T>());
+            this.Awaiter = this.ProcessQueue().CoalesceInDefaultGroupUsing(new NoCoalescingCancellableSyncStrategy<T>());
         }
 
         public bool Enqueue(FlowSyncTaskAwaiter<T> e)
@@ -125,5 +103,11 @@ public class QueueCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
             return result;
         }
     }
+
+    public void Cancel(object groupKey) => this._storage.TryRead(groupKey, this, static (_, _, e) => e.Cancel());
+
+    public void CancelAll() => this._storage.ReadAll(this, static (_, _, e) => e.Cancel());
+
+    public void Dispose() => this._storage.Dispose();
 }
 

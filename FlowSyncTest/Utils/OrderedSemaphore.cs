@@ -2,7 +2,7 @@
 
 namespace FlowSyncTest.Utils;
 
-public class OrderedSemaphore
+public class OrderedSemaphore(OrderedSemaphore.ContinuationRunMode continuationRunMode = OrderedSemaphore.ContinuationRunMode.PreferSingleThread)
 {
     public enum ContinuationRunMode
     {
@@ -14,18 +14,11 @@ public class OrderedSemaphore
 
     private bool _started;
 
-    private readonly ContinuationRunMode _continuationRunMode;
-
-    public OrderedSemaphore(ContinuationRunMode continuationRunMode = ContinuationRunMode.PreferSingleThread)
-    {
-        this._continuationRunMode = continuationRunMode;
-    }
-
     private void ContinuationThread()
     {
         lock (this._queue)
         {
-            for (int i = 0; i < this._queue.Count; i++)
+            for (var i = 0; i < this._queue.Count; i++)
             {
                 if (this._queue.TryGetValue(i, out var entry))
                 {
@@ -33,7 +26,7 @@ public class OrderedSemaphore
                     {
                         entry.SetCompleted();
                         this._queue[i] = null;
-                        if (this._continuationRunMode == ContinuationRunMode.ForceNewThread)
+                        if (continuationRunMode == ContinuationRunMode.ForceNewThread)
                         {
                             new Thread(this.ContinuationThread).Start();
                             return;

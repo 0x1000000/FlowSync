@@ -18,9 +18,17 @@ public partial class SyncDemo : ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>
             this.PageMode = mode;
             this.Header = mode.GetName();
 
-            this.FlowSyncStrategy.CancelAll();
-            this.FlowSyncStrategy.Dispose();
-            this.FlowSyncStrategy = mode.Accept(this);
+            this.FlowSyncStrategy?.CancelAll();
+            this.FlowSyncStrategy?.Dispose();
+            this.FlowSyncStrategy = null;
+
+            this.FlowSyncAggStrategy.CancelAll();
+
+            if (mode != SyncDemoPageMode.Agg)
+            {
+                this.FlowSyncStrategy = mode.Accept(this);
+            }
+            
             this.StartsAndResult1.Clear();
             this.StartsAndResult2.Clear();
         }
@@ -30,7 +38,18 @@ public partial class SyncDemo : ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>
 
     private string Header { get; set; } = string.Empty;
 
-    private IFlowSyncStrategy<int> FlowSyncStrategy { get; set; } = NoCoalescingSyncStrategy<int>.Instance;
+    private IFlowSyncStrategy<int>? FlowSyncStrategy { get; set; }
+
+    private IFlowSyncAggStrategy<int, int, List<int>> FlowSyncAggStrategy { get; } =
+        new AggCoalescingSyncStrategy<int, int, List<int>>(
+            seedFactory: (acc,_) => acc ?? [],
+            aggregator: (acc, next) =>
+            {
+                acc.Add(next);
+                return acc;
+            },
+            bufferTime: TimeSpan.FromSeconds(1.5)
+        );
 
     private void OnResult1Change(int result) => this.StartsAndResult1.Result = result;
     private void OnResult2Change(int result) => this.StartsAndResult2.Result = result;
@@ -44,8 +63,11 @@ public partial class SyncDemo : ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>
 
     void IDisposable.Dispose()
     {
-        this.FlowSyncStrategy.CancelAll();
-        this.FlowSyncStrategy.Dispose();
+        this.FlowSyncStrategy?.CancelAll();
+        this.FlowSyncStrategy?.Dispose();
+
+        this.FlowSyncAggStrategy.CancelAll();
+        this.FlowSyncAggStrategy.Dispose();
     }
 
     IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseNoSync()
@@ -61,6 +83,8 @@ public partial class SyncDemo : ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>
 
     IFlowSyncStrategy<int> ISyncDemoPageModeVisitor<IFlowSyncStrategy<int>>.CaseDeBounce()
         => new DeBounceCoalescingSyncStrategy<int>(TimeSpan.FromSeconds(2));
+
+    public IFlowSyncStrategy<int> CaseAgg() => throw new NotImplementedException();
 
     private class StartsAndResult
     {

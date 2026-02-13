@@ -8,13 +8,13 @@ public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
     private readonly AtomicUpdateDictionary<object, Entry> _storage = new();
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
-        IFlowSyncStarter<T> flowStarter,
-        object? resourceId)
+        IFlowSyncFactory<T> flowFactory,
+        object? groupKey)
     {
-        var key = resourceId ?? AtomicUpdateDictionary.DefaultKey;
+        var key = groupKey ?? AtomicUpdateDictionary.DefaultKey;
         var (_, result) = this._storage.AddOrUpdate(
             key: key,
-            arg: (this, flowStarter),
+            arg: (this, flowFactory),
             addValueFactory: static (key, args) =>
             {
                 var (self, flowStarter) = args;
@@ -38,12 +38,12 @@ public class NoCoalescingCancellableSyncStrategy<T> : IFlowSyncStrategy<T>
         return result;
     }
 
-    public void CancelDefaultResource(object resourceId) => this.Cancel(AtomicUpdateDictionary.DefaultKey);
+    public void CancelDefaultGroup() => this.Cancel(AtomicUpdateDictionary.DefaultKey);
 
-    public void Cancel(object resourceId)
+    public void Cancel(object groupKey)
     {
         this._storage.TryUpdate(
-            key: resourceId,
+            key: groupKey,
             arg: default(object?),
             updateValueFactory: static (_, _, entry) =>
             {

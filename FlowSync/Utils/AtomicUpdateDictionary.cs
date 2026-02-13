@@ -116,7 +116,16 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
             )
             .Item1;
 
-    public bool TryUpdate<TArg>(TKey key, TArg arg, Func<TKey, TArg, TValue, TValue> updateValueFactory, [NotNullWhen(true)] out TValue? newValue)
+    public bool TryUpdate<TArg>(
+        TKey key,
+        TArg arg,
+        Func<TKey, TArg, TValue, TValue> updateValueFactory,
+        [NotNullWhen(true)] out TValue? newValue)
+    {
+        return this.TryUpdate(key, arg, updateValueFactory, out newValue, out _);
+    }
+
+    public bool TryUpdate<TArg>(TKey key, TArg arg, Func<TKey, TArg, TValue, TValue> updateValueFactory, [NotNullWhen(true)] out TValue? newValue, [NotNullWhen(true)] out TValue? oldValue)
     {
         bool response;
         Predicate<TValue>? tailRemove = null;
@@ -127,6 +136,7 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
         {
             if (this._dictionary.TryGetValue(key, out var entry))
             {
+                oldValue = entry.Value;
                 lock (entry)
                 {
                     entry.ReadingCounter++;
@@ -149,7 +159,8 @@ internal sealed class AtomicUpdateDictionary<TKey, TValue> : IDisposable where T
             }
             else
             {
-                newValue = default!;
+                oldValue = default;
+                newValue = default;
                 response = false;
             }
         }

@@ -19,6 +19,6 @@ public class CancellationTokenAwaiter : INotifyCompletion
 
     public void OnCompleted(Action continuation)
     {
-        throw new NotImplementedException("This method is not supposed to be called");
+        throw new InvalidOperationException($"You can get the cancellation context only async methods that returns {nameof(FlowSyncTask)}");
     }
 }

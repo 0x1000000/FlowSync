@@ -4,14 +4,15 @@ namespace WebDemoStandalone.Layout;
 
 public partial class NavMenu : ISyncDemoPageModeVisitor<string>
 {
-    public static readonly IReadOnlyList<SyncDemoPageMode> Modes = new[]
-    {
+    public static readonly IReadOnlyList<SyncDemoPageMode> Modes =
+    [
         SyncDemoPageMode.NoSync,
         SyncDemoPageMode.UseFirst,
         SyncDemoPageMode.UseLast,
         SyncDemoPageMode.DeBounce,
-        SyncDemoPageMode.Queue
-    };
+        SyncDemoPageMode.Queue,
+        SyncDemoPageMode.Agg
+    ];
 
     public string GetPageModeUrl(SyncDemoPageMode syncDemoPageMode) => syncDemoPageMode.Accept(this);
 
@@ -24,4 +25,6 @@ public partial class NavMenu : ISyncDemoPageModeVisitor<string>
     string ISyncDemoPageModeVisitor<string>.CaseQueue() => $"demo/{nameof(SyncDemoPageMode.Queue)}";
 
     string ISyncDemoPageModeVisitor<string>.CaseDeBounce() => $"demo/{nameof(SyncDemoPageMode.DeBounce)}";
+
+    string ISyncDemoPageModeVisitor<string>.CaseAgg() => $"demo/{nameof(SyncDemoPageMode.Agg)}";
 }

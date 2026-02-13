@@ -1,21 +1,10 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
+﻿namespace FlowSyncTest.Utils;
 
-namespace FlowSyncTest.Utils;
-
-public sealed class FakeTimer
+public sealed class FakeTimer(int number)
 {
     private record struct Entry(int Id, int Remaining, TaskCompletionSource? CompletionSource);
 
-    private readonly Dictionary<int, Entry> _entries;
-
-    private readonly int _maxTimeLines;
-
-    public FakeTimer(int number)
-    {
-        this._maxTimeLines = number;
-        this._entries = new Dictionary<int, Entry>(number);
-    }
+    private readonly Dictionary<int, Entry> _entries = new(number);
 
     public static IReadOnlyList<FakeTimeLine> CreateTimeLines(int number)
     {
@@ -23,7 +12,7 @@ public sealed class FakeTimer
 
         var t = new FakeTimer(number);
 
-        for (int i = 0; i < number; i++)
+        for (var i = 0; i < number; i++)
         {
             initialTimeLines.Add(new FakeTimeLine(i, t));
         }
@@ -54,7 +43,7 @@ public sealed class FakeTimer
                 throw new Exception("This Time Line Was Disposed");
             }
 
-            if (this._entries.Count > this._maxTimeLines)
+            if (this._entries.Count > number)
             {
                 throw new Exception("Cannot be");
             }
@@ -67,7 +56,7 @@ public sealed class FakeTimer
 
     private void TryRunClosestUnsafe(bool notClosing)
     {
-        if (this._entries.Count == this._maxTimeLines)
+        if (this._entries.Count == number)
         {
             Entry? closestEntry = null;
 

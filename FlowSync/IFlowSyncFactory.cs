@@ -1,6 +1,6 @@
 ﻿namespace FlowSync;
 
-public interface IFlowSyncStarter<T>
+public interface IFlowSyncFactory<T>
 {
     FlowSyncTaskAwaiter<T> CreateAwaiter(CancellationToken cancellationToken = default, FlowSyncTaskAwaiter<T>? follower = null);
 }

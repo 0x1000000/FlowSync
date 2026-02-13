@@ -20,7 +20,9 @@ public partial class RequestProgress
 
     [Parameter] public int RequestIndex { get; set; }
 
-    [Parameter] public IFlowSyncStrategy<int> SyncStrategy { get; set; } = default!;
+    [Parameter] public IFlowSyncStrategy<int>? SyncStrategy { get; set; }
+
+    [Parameter] public IFlowSyncAggStrategy<int, int, List<int>>? AggSyncStrategy { get; set; }
 
     [Parameter] public EventCallback<int> Started { get; set; }
 
@@ -77,8 +79,21 @@ public partial class RequestProgress
         this.LorryProgress = 0;
         try
         {
-            this.Result = await this.GetResultAsync()
-                .CoalesceUsing(this.SyncStrategy, this.ResourceId);
+            if (this.SyncStrategy != null)
+            {
+                this.Result = await this.GetResultAsync(this.RequestIndex)
+                    .CoalesceInGroupUsing(this.SyncStrategy, this.ResourceId);
+            }
+            else if (this.AggSyncStrategy != null)
+            {
+                this.Result = await FlowSyncAggTask
+                    .Create<int, List<int>>((list, ct) => this.GetResultAsync(list.Sum(), ct).StartAsTask())
+                    .CoalesceInGroupUsing(this.AggSyncStrategy, this.RequestIndex, this.ResourceId);
+            }
+            else
+            {
+                throw new InvalidOperationException("Sync strategy is not defined");
+            }
 
             await this.ResultChanged.InvokeAsync(this.Result);
 
@@ -98,20 +113,25 @@ public partial class RequestProgress
         await this.InvokeAsync(this.StateHasChanged);
     }
 
-    private async FlowSyncTask<int> GetResultAsync()
+    private async FlowSyncTask<int> GetResultAsync(int result, CancellationToken explicitToken = default)
     {
         this.ProgressState = ProgressState.InProgress;
         await this.InvokeAsync(this.StateHasChanged);
 
-        var cancellationContext = await FlowSyncTask.GetCancellationContext();
+        IFlowCancellationContext? cancellationContext = null;
+        var cancellationToken = explicitToken;
+
+        if (cancellationToken == CancellationToken.None)
+        {
+            cancellationContext = await FlowSyncTask.GetCancellationContext();
+            cancellationToken = cancellationContext.CancellationToken;
+        }
 
         try
         {
-            var result = this.RequestIndex;
-
             for (var i = 1; i <= 100; i++)
             {
-                await Task.Delay(54 - this.RequestIndex * 3, cancellationContext.CancellationToken);
+                await Task.Delay(54 - this.RequestIndex * 3, cancellationToken);
                 this.ProgressPrc = i;
                 this.LorryProgress = i;
                 await this.InvokeAsync(this.StateHasChanged);
@@ -119,7 +139,7 @@ public partial class RequestProgress
 
             return result;
         }
-        catch (OperationCanceledException) when (cancellationContext.IsCancelledLocally)
+        catch (OperationCanceledException) when (cancellationContext?.IsCancelledLocally ?? false)
         {
             this.ProgressState = ProgressState.Redirected;
             await this.InvokeAsync(this.StateHasChanged);
@@ -131,7 +151,14 @@ public partial class RequestProgress
     {
         if (this.IsCancelable)
         {
-            this.SyncStrategy.Cancel(this.ResourceId);
+            if (this.SyncStrategy != null)
+            {
+                this.SyncStrategy.Cancel(this.ResourceId);
+            }
+            else if (this.AggSyncStrategy != null)
+            {
+                this.AggSyncStrategy.Cancel(this.ResourceId);
+            }
         }
         else
         {

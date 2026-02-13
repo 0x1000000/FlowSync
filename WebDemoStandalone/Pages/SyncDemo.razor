@@ -21,7 +21,8 @@
             <RequestProgress 
                 ResourceId="r1" 
                 RequestIndex="1" 
-                SyncStrategy="FlowSyncStrategy" 
+                SyncStrategy="FlowSyncStrategy"
+                AggSyncStrategy="FlowSyncAggStrategy"
                 @key="FlowSyncStrategy" 
                 Started="OnStarted1"
                 ResultChanged="OnResult1Change"/>
@@ -31,6 +32,7 @@
                 ResourceId="r1" 
                 RequestIndex="3" 
                 SyncStrategy="FlowSyncStrategy"
+                AggSyncStrategy="FlowSyncAggStrategy"
                 @key="FlowSyncStrategy"
                 Started="OnStarted1"
                 ResultChanged="OnResult1Change"/>
@@ -40,6 +42,7 @@
                 ResourceId="r1"
                 RequestIndex="7"
                 SyncStrategy="FlowSyncStrategy"
+                AggSyncStrategy="FlowSyncAggStrategy"
                 @key="FlowSyncStrategy"
                 Started="OnStarted1"
                 ResultChanged="OnResult1Change"/>
@@ -62,6 +65,7 @@
                 ResourceId="r2"
                 RequestIndex="1"
                 SyncStrategy="FlowSyncStrategy"
+                AggSyncStrategy="FlowSyncAggStrategy"
                 @key="FlowSyncStrategy"
                 Started="OnStarted2"
                 ResultChanged="OnResult2Change"/>
@@ -71,6 +75,7 @@
                 ResourceId="r2"
                 RequestIndex="3"
                 SyncStrategy="FlowSyncStrategy"
+                AggSyncStrategy="FlowSyncAggStrategy"
                 @key="FlowSyncStrategy"
                 Started="OnStarted2"
                 ResultChanged="OnResult2Change"/>
@@ -80,6 +85,7 @@
                 ResourceId="r2"
                 RequestIndex="7"
                 SyncStrategy="FlowSyncStrategy"
+                AggSyncStrategy="FlowSyncAggStrategy"
                 @key="FlowSyncStrategy"
                 Started="OnStarted2"
                 ResultChanged="OnResult2Change"/>
@@ -167,6 +173,30 @@
             <p>
                 This strategy is particularly useful in UIs where users may trigger multiple rapid requests,
                 such as typing in a search box or adjusting filters.
+            </p>
+        }
+        else if (PageMode == SyncDemoPageMode.Agg)
+        {
+            <p>
+                In this mode, requests are buffered and combined before execution.  
+                When you click a lorry, its value is added to an accumulator and a buffering timer (1.5 seconds) starts.  
+                If you click more lorries during this time, their values are aggregated into the same batch.
+            </p>
+
+            <p>
+                When the buffer window expires, a single lorry starts with the aggregated value.  
+                If new clicks happen while that lorry is running, they are collected into the next batch.  
+                As soon as the current lorry finishes, the last queued lorry starts with the accumulated value.
+            </p>
+
+            <ul>
+                <li>Multiple requests are merged into a single aggregated execution.</li>
+                <li>Requests are grouped in 1.5-second time windows and processed as batches.</li>
+                <li>All callers receive the result of the aggregated operation.</li>
+            </ul>
+
+            <p>
+                This strategy is useful when many small requests should be combined into fewer larger operations, such as batching updates, telemetry aggregation, or buffered writes.
             </p>
         }
     </div>

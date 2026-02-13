@@ -16,8 +16,8 @@ public class UnhandledErrorWhenCancelTest
     {
         var strategy = strategyId.Create<int>();
 
-        await Task.WhenAny(Job().CoalesceUsing(strategy).StartAsTask(), Task.Delay(1));
-        await Task.WhenAny(Job().CoalesceUsing(strategy).StartAsTask(), Task.Delay(1));
+        await Task.WhenAny(Job().CoalesceInDefaultGroupUsing(strategy).StartAsTask(), Task.Delay(1));
+        await Task.WhenAny(Job().CoalesceInDefaultGroupUsing(strategy).StartAsTask(), Task.Delay(1));
 
         strategy.CancelAll();
         strategy.Dispose();

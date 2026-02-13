@@ -7,12 +7,12 @@ public class UseFirstCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
     private readonly AtomicUpdateDictionary<object, FlowSyncTaskAwaiter<T>> _storage = new();
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
-        IFlowSyncStarter<T> flowStarter,
-        object? resourceId)
+        IFlowSyncFactory<T> flowFactory,
+        object? groupKey)
     {
         return this._storage.AddOrUpdate(
-            key: resourceId ?? AtomicUpdateDictionary.DefaultKey,
-            arg: (self: this, flowStarter),
+            key: groupKey ?? AtomicUpdateDictionary.DefaultKey,
+            arg: (self: this, flowStarter: flowFactory),
             addValueFactory: static (key, args)
                 => args.self.SubscribeRemoval(key, args.flowStarter.CreateAwaiter()),
             updateValueFactory: static (key, arg, awaiter) => awaiter.IsCompleted
@@ -21,10 +21,10 @@ public class UseFirstCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         );
     }
 
-    public void Cancel(object resourceId)
+    public void Cancel(object groupKey)
     {
         this._storage.TryRead(
-            resourceId,
+            groupKey,
             this,
             static (_, _, awaiter) => awaiter.Cancel(isExternalCancel: true)
         );

@@ -23,7 +23,7 @@ public partial class Grid
 
     public string SortBy { get; set; } = GridDataProvider.OrderBys[0].Name;
 
-    public IReadOnlyList<GridDataItem> Items = Array.Empty<GridDataItem>();
+    public IReadOnlyList<GridDataItem> Items = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -39,7 +39,7 @@ public partial class Grid
         else
         {
             this.RefreshGridDataFixed()
-                .CoalesceUsing(this.SyncStrategy)
+                .CoalesceInDefaultGroupUsing(this.SyncStrategy)
                 .Start();
         }
 

@@ -9,7 +9,8 @@ public enum SyncDemoPageMode
     UseFirst,
     UseLast,
     Queue,
-    DeBounce
+    DeBounce,
+    Agg
 }
 
 public static class SyncDemoPageModeExtension
@@ -25,6 +26,8 @@ public static class SyncDemoPageModeExtension
         public string CaseQueue() => "Queue";
 
         public string CaseDeBounce() => "De-Bounce (2 sec)";
+
+        public string CaseAgg() => "Aggregate";
     }
 
     public static string GetName(this SyncDemoPageMode mode)

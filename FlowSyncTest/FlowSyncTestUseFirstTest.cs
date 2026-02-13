@@ -50,7 +50,7 @@ public class FlowSyncTestUseFirstTest
 
         var sync = await (useRegularTask
             ? FlowSyncTask.Create(ct => this.GetSyncMethodAsTask(ct, cancellationLog, index))
-            : this.GetSyncMethod(cancellationLog, index)).CoalesceUsing(syncStrategy);
+            : this.GetSyncMethod(cancellationLog, index)).CoalesceInDefaultGroupUsing(syncStrategy);
         return sync;
     }
 

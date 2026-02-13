@@ -8,7 +8,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         int Id,
         FlowSyncTaskAwaiter<T> Remote,
         DateTime DateAdded,
-        IFlowSyncStarter<T> Starter,
+        IFlowSyncFactory<T> Factory,
         FlowSyncTaskAwaiter<T>? CurrentAwaiter,
         CancellationTokenSource? CancellationTokenSource);
 
@@ -28,22 +28,22 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
     }
 
     public FlowSyncTaskAwaiter<T> EnterSyncSection(
-        IFlowSyncStarter<T> flowStarter,
-        object? resourceId = null)
+        IFlowSyncFactory<T> flowFactory,
+        object? groupKey = null)
     {
-        resourceId ??= AtomicUpdateDictionary.DefaultKey;
+        groupKey ??= AtomicUpdateDictionary.DefaultKey;
 
         var (result, awaiterToCancel) = this._storage
             .AddOrUpdate(
-                key: resourceId,
-                arg: (this, flowStarter),
-                addValueFactory: static (resourceId, args) =>
+                key: groupKey,
+                arg: (this, flowFactory),
+                addValueFactory: static (groupKey, args) =>
                 {
                     var (self, flowStarter) = args;
 
                     var remote = new FlowSyncTaskAwaiter<T>(null, null, CancellationToken.None);
 
-                    remote.LazyOnCompleted(() => self.OnRemoteCompleted(resourceId, remote));
+                    remote.LazyOnCompleted(() => self.OnRemoteCompleted(groupKey, remote));
 
                     var cancellationTokenSource = new CancellationTokenSource();
                     var newEntry = new Entry(
@@ -56,7 +56,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
                     );
 
                     Task.Delay(self._duration, cancellationTokenSource.Token)
-                        .ContinueWith(t => self.OnTimer(t, resourceId, newEntry));
+                        .ContinueWith(t => self.OnTimer(t, groupKey, newEntry));
 
                     return (newEntry, null);
                 },
@@ -92,10 +92,10 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         return result.Remote;
     }
 
-    public void Cancel(object resourceId)
+    public void Cancel(object groupKey)
     {
         this._storage.TryRead(
-            resourceId,
+            groupKey,
             this,
             static (_, _, e) =>
             {
@@ -129,12 +129,12 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
 
     public void Dispose() => this._storage.Dispose();
 
-    private void OnTimer(Task delayTask, object resourceId, Entry originalEntry)
+    private void OnTimer(Task delayTask, object groupKey, Entry originalEntry)
     {
         this._storage.TryUpdate(
-            resourceId,
+            groupKey,
             (delayTask, originalEntry, this),
-            static (resourceId, args, currentEntry) =>
+            static (groupKey, args, currentEntry) =>
             {
                 var (delayTask, originalEntry, self) = args;
 
@@ -157,7 +157,7 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
                 {
                     //Was replaced - it needs a new delay
                     Task.Delay(timeDiffMs, currentEntry.CancellationTokenSource!.Token)
-                        .ContinueWith(t => self.OnTimer(t, resourceId, currentEntry), TaskScheduler.Default);
+                        .ContinueWith(t => self.OnTimer(t, groupKey, currentEntry), TaskScheduler.Default);
                     return currentEntry;
                 }
 
@@ -170,17 +170,17 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
                 currentEntry.CancellationTokenSource?.Dispose();
                 currentEntry = currentEntry with
                 {
-                    CurrentAwaiter = currentEntry.Starter.CreateAwaiter(),
+                    CurrentAwaiter = currentEntry.Factory.CreateAwaiter(),
                     CancellationTokenSource = null
                 };
 
-                currentEntry.CurrentAwaiter.LazyOnCompleted(() => self.OnAwaiterComplete(resourceId, currentEntry));
+                currentEntry.CurrentAwaiter.LazyOnCompleted(() => self.OnAwaiterComplete(groupKey, currentEntry));
                 currentEntry.Remote.OnStarted(
                     isCompleted =>
                     {
                         if (!isCompleted)
                         {
-                            self.OnRemoteStarted(resourceId, currentEntry);
+                            self.OnRemoteStarted(groupKey, currentEntry);
                         }
                     }
                 );
@@ -190,10 +190,10 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         );
     }
 
-    private void OnRemoteStarted(object resourceId, Entry originalEntry)
+    private void OnRemoteStarted(object groupKey, Entry originalEntry)
     {
         this._storage.TryRead(
-            resourceId,
+            groupKey,
             originalEntry,
             static (_, originalEntry, currentEntry) =>
             {
@@ -205,10 +205,10 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         );
     }
 
-    private void OnAwaiterComplete(object resourceId, Entry originalEntry)
+    private void OnAwaiterComplete(object groupKey, Entry originalEntry)
     {
         this._storage.TryRead(
-            resourceId,
+            groupKey,
             originalEntry,
             static (_, originalEntry, currentEntry) =>
             {
@@ -220,15 +220,15 @@ public class DeBounceCoalescingSyncStrategy<T> : IFlowSyncStrategy<T>
         );
     }
 
-    private void OnRemoteCompleted(object resourceId, FlowSyncTaskAwaiter<T> remote)
+    private void OnRemoteCompleted(object groupKey, FlowSyncTaskAwaiter<T> remote)
     {
-        if (!this._storage.TryScheduleRemoval(resourceId, currentEntry => currentEntry.Remote == remote))
+        if (!this._storage.TryScheduleRemoval(groupKey, currentEntry => currentEntry.Remote == remote))
         {
             Task.Run(
                 () =>
                 {
                     this._storage.TryScheduleRemoval(
-                        resourceId,
+                        groupKey,
                         currentEntry => currentEntry.Remote == remote
                     );
                 }

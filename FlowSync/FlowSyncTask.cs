@@ -14,7 +14,7 @@ public class FlowSyncTask
         return new FlowSyncTask<T>(new FlowSyncTaskFactory<T>(taskFactory));
     }
 
-    private class FlowSyncTaskFactory<T> : IFlowSyncStarter<T>, IAsyncStateMachine
+    private class FlowSyncTaskFactory<T> : IFlowSyncFactory<T>, IAsyncStateMachine
     {
         private readonly Func<CancellationToken, Task<T>> _taskFactory;
 
@@ -68,15 +68,34 @@ public class FlowSyncTask
 [AsyncMethodBuilder(typeof(FlowSyncSyncTaskMethodBuilder<>))]
 public readonly struct FlowSyncTask<T>
 {
-    private readonly IFlowSyncStarter<T> _starter;
+    private readonly IFlowSyncFactory<T> _factory;
 
-    internal FlowSyncTask(IFlowSyncStarter<T> starter)
+    internal FlowSyncTask(IFlowSyncFactory<T> factory)
     {
-        this._starter = starter;
+        this._factory = factory;
     }
 
-    public FlowSyncTaskAwaiter<T> CoalesceUsing(IFlowSyncStrategy<T> syncStrategy, object? resourceId = null)
+    public FlowSyncTaskAwaiter<T> CoalesceInDefaultGroupUsing(IFlowSyncStrategy<T> syncStrategy)
     {
-        return syncStrategy.EnterSyncSection(this._starter, resourceId);
+        return syncStrategy.EnterSyncSection(this._factory);
+    }
+
+    public FlowSyncTaskAwaiter<T> CoalesceInGroupUsing(IFlowSyncStrategy<T> syncStrategy, object groupKey)
+    {
+        if (groupKey == null)
+        {
+            throw new ArgumentNullException(nameof(groupKey));
+        }
+        return syncStrategy.EnterSyncSection(this._factory, groupKey);
+    }
+
+    public Task<T> StartAsTask(bool startAsynchronously = false, bool runContinuationsAsynchronously = true)
+    {
+        return this.CreateWithoutCoalescing().StartAsTask(startAsynchronously, runContinuationsAsynchronously);
+    }
+
+    internal FlowSyncTaskAwaiter<T> CreateWithoutCoalescing()
+    {
+        return this._factory.CreateAwaiter();
     }
 }

@@ -136,7 +136,7 @@ public sealed class FlowSyncTaskAwaiter<T> : INotifyCompletion, IFlowCancellatio
             {
                 lock (this._syncObj)
                 {
-                    if (!this._isCompleted)
+                    if (this._isCompleted)
                     {
                         if (this._exception != null)
                         {
