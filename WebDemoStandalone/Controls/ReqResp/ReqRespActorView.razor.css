@@ -1,0 +1,67 @@
+.arrow-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.sim-layout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.actor-icon {
+  width: 26px;
+  height: 40px;
+  display: block;
+  color: #334155;
+  flex: 0 0 auto;
+}
+
+.arrow-stack {
+  display: flex;
+  flex-direction: column;
+  width: 30px;
+}
+
+.arrow {
+  width: 30px;
+  height: 10px;
+  display: block;
+  color: #2563eb;
+}
+
+.arrow--left {
+  margin-top: 6px;
+  transform: scaleX(-1);
+  transform-origin: center;
+  color: #dc2626;
+}
+
+.actor {
+    font-size: 1.2rem;
+}
+
+.reqresp-values {
+    width: 60px;
+}
+
+.req-value {
+    color: #2563eb;
+    font-size: 1.1rem;
+}
+
+.reqresp-value-divider {
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.resp-value {
+    color: #dc2626;
+    font-size: 1.1rem;
+}
+
+.reqresp-server {
+    font-size: 1.2rem;
+}

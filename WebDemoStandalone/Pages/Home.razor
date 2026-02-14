@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using WebDemoStandalone.Controls.ReqResp
 <section>
     <h2>Async Coalescing Strategies in .NET</h2>
     <p>
@@ -22,6 +23,7 @@
             <li><a href="demo/Agg"><strong>Aggregate</strong></a> – <em>Buffer and batch requests</em></li>
         </ul>
     </p>
+    <ReqRespCatalog></ReqRespCatalog>
     <p>
         Curious what happens without any strategy at all? 
         <a href="demo/NoSync">See the “No Synchronization” demo →</a>

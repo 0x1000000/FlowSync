@@ -1,0 +1,48 @@
+<svg class="arrow-defs" aria-hidden="true" focusable="false">
+    <defs>
+        <symbol id="reqresp-arrow" viewBox="0 0 300 100">
+            <path fill="currentColor" d="M0 35 H228 V15 L300 50 L228 85 V65 H0 Z"/>
+        </symbol>
+    </defs>
+</svg>
+
+<div class="sim-layout">
+
+    <span class="actor">@ActorEmoji</span>
+
+    <div class="reqresp-values">
+        <span class="req-value">@RequestValue</span>
+        <span class="reqresp-value-divider">/ </span>
+        @if (ResponseValue == ReqRespEmoji.Processing)
+        {
+            <span>@ReqRespEmoji.Processing</span>
+        }
+        else
+        {
+            <span class="resp-value">@ResponseValue</span>
+        }
+    </div>
+
+    <div class="arrow-stack">
+        @if (this.IsRequestVisible)
+        {
+            <svg class="arrow" viewBox="0 0 300 100" role="img" aria-label="Right-pointing arrow">
+                <use href="#reqresp-arrow"/>
+            </svg>
+        }
+        
+        @if (this.IsResponseVisible)
+        {
+            <svg class="arrow arrow--left" viewBox="0 0 300 100" role="img" aria-label="Left-pointing arrow">
+                <use href="#reqresp-arrow"/>
+            </svg>
+        }
+    </div>
+    
+    <div class="reqresp-server">
+        <span>@ReqRespEmoji.Server</span>
+        <span>@ServerState</span>
+        <span>@ServerRequest</span>
+    </div>
+
+</div>

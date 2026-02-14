@@ -1,0 +1,12 @@
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, auto);
+  width: 600px;
+  height: 680px;
+  border: 1px solid gray;
+}
+
+.catalog-item {
+  min-width: 0;
+}
