@@ -1,3 +1,178 @@
+/* /Controls/ReqResp/ReqRespActorView.razor.rz.scp.css */
+.arrow-defs[b-twqqzf3e65] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.sim-layout[b-twqqzf3e65] {
+  display: flex;
+  align-items: center;
+  white-space:nowrap;
+  gap: 8px;
+  width: max-content;
+}
+
+.actor-wrap[b-twqqzf3e65] {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    width: 36px;
+}
+
+.actor[b-twqqzf3e65] {
+    font-size: 19px;
+    display: inline-block;
+}
+
+.actor-indicator[b-twqqzf3e65] {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: transparent;
+    display: inline-block;
+}
+
+.actor-indicator--on[b-twqqzf3e65] {
+    background: #dc2626;
+}
+
+.reqresp-values[b-twqqzf3e65] {
+    width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.req-value[b-twqqzf3e65] {
+    color: #2563eb;
+    font-size: 18px;
+}
+
+.reqresp-value-divider[b-twqqzf3e65] {
+    font-size: 21px;
+    font-weight: bold;
+    width: 10px;
+    text-align: center;
+}
+
+.resp-value[b-twqqzf3e65] {
+    color: green;
+    font-size: 18px;
+}
+
+.reqresp-value-slot[b-twqqzf3e65] {
+    display: inline-block;
+    width: 28px;
+    text-align: center;
+}
+
+.arrow-stack[b-twqqzf3e65] {
+  position: relative;
+  width: 30px;
+  height: 16px;
+  min-width: 30px;
+}
+
+.arrow[b-twqqzf3e65] {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 30px;
+  height: 10px;
+  display: block;
+  color: #2563eb;
+  transform: translateY(-50%);
+}
+
+.arrow--left[b-twqqzf3e65] {
+    transform: translateY(-50%) scaleX(-1);
+    transform-origin: center center;
+    color: green;
+}
+
+.arrow--hidden[b-twqqzf3e65] {
+    visibility: hidden;
+}
+
+.reqresp-server[b-twqqzf3e65] {
+    font-size: 19px;
+    width: 82px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.reqresp-server-icon[b-twqqzf3e65] {
+    width: 27px;
+}
+
+.reqresp-server-state[b-twqqzf3e65] {
+    width: 27px;
+}
+
+.reqresp-server-requested-value[b-twqqzf3e65] {
+    width: 24px;
+}
+
+.requested-value[b-twqqzf3e65] {
+    color: orangered;
+    display: inline-block;
+    min-width: 24px;
+    text-align: left;
+}
+
+.requested-value--canceled[b-twqqzf3e65] {
+    text-decoration: line-through;
+}
+/* /Controls/ReqResp/ReqRespCatalog.razor.rz.scp.css */
+.catalog-grid[b-b11ibxz8tx] {
+  display: inline-grid;
+  grid-template-columns: repeat(2, max-content);
+  grid-auto-rows: max-content;
+  width: fit-content;
+  height: fit-content;
+  border: 1px solid gray;
+  align-items: start;
+  justify-items: start;
+}
+
+.catalog-item[b-b11ibxz8tx] {
+  min-width: fit-content;
+}
+/* /Controls/ReqResp/ReqRespGroup.razor.rz.scp.css */
+.reqresp-group[b-gzv5deqbvl] {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.reqresp-group__actors[b-gzv5deqbvl] {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.reqresp-group__progress-wrap[b-gzv5deqbvl] {
+    display: flex;
+    align-items: center;
+}
+
+.reqresp-group__progress[b-gzv5deqbvl] {
+    height: 3px;
+    flex: 1 1 auto;
+    background-color: #edf0f3;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.reqresp-group__progress-fill[b-gzv5deqbvl] {
+    height: 100%;
+    width: 0;
+    background: #c7ccd3;
+    opacity: 0.75;
+}
 /* /Controls/RequestProgress.razor.rz.scp.css */
 /* ========== Layout containers ========== */
 
