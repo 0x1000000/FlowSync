@@ -1,36 +1,41 @@
 using Microsoft.AspNetCore.Components;
+using WebDemoStandalone.Controls.ReqResp.Models;
 
 namespace WebDemoStandalone.Controls.ReqResp;
 
 public partial class ReqRespGroup : IDisposable
 {
     private readonly object _syncRoot = new();
-    private ActorStoryGroup? _actorStories;
+    private ActorStoryGroup? _activeGroup;
     private CancellationTokenSource? _pbCancellationTokenSource;
     private int _progressPrc;
+    private TaskCompletionSource? _waiterForCycle;
+    private int _waiterForCycleId;
 
     [Parameter]
-    public ActorStoryGroup? ActorStories
-    {
-        get => this._actorStories;
-        set
-        {
-            if (this._actorStories != value)
-            {
-                this._actorStories = value;
-                if (value != null)
-                {
-                    this.StartProgressBar(value);
-                }
-                else
-                {
-                    this.StopProgressBar();
-                }
-            }
-        }
-    }
+    public ActorStoryGroup? ActorStories { get; set; }
 
     protected string ProgressStyle => $"width: {this._progressPrc}%;";
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(this._activeGroup, this.ActorStories))
+        {
+            return;
+        }
+
+        TaskCompletionSource? previousWaiter;
+        lock (this._syncRoot)
+        {
+            this._activeGroup = this.ActorStories;
+            previousWaiter = this._waiterForCycle;
+            this._waiterForCycle = null;
+            this._waiterForCycleId = 0;
+        }
+
+        previousWaiter?.TrySetCanceled();
+        this.StopProgressBar();
+    }
 
     private void StartProgressBar(ActorStoryGroup group)
     {
@@ -76,7 +81,13 @@ public partial class ReqRespGroup : IDisposable
         {
             var start = DateTime.UtcNow;
             var end = start.Add(targetDuration);
-            var delay = TimeSpan.FromSeconds(2);
+            var delay = TimeSpan.FromSeconds(1);
+
+            int startId;
+            lock (this._syncRoot)
+            {
+                startId = this._waiterForCycleId;
+            }
 
             while (!cancellationToken.IsCancellationRequested && DateTime.UtcNow <= end)
             {
@@ -103,26 +114,65 @@ public partial class ReqRespGroup : IDisposable
             this._progressPrc = 100;
             _ = this.InvokeAsync(this.StateHasChanged);
 
-            var tasks = group.Stories
-                .Select(x => x.StoryLine.ReplayCoordinator.WaitWithoutCountingAsync(cancellationToken).AsTask())
-                .ToList();
-
-            try
+            // Wait a moment at 100% before resetting.
+            TaskCompletionSource? waiterForCycle = null;
+            lock (this._syncRoot)
             {
-                await Task.WhenAll(tasks);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
+                if (startId == this._waiterForCycleId)
+                {
+                    waiterForCycle = this._waiterForCycle;
+                }
             }
 
-            if (tasks.Any(r => r.IsFaulted || !r.Result))
+            if (waiterForCycle != null)
             {
-                break;
+                try
+                {
+                    await waiterForCycle.Task.WaitAsync(TimeSpan.FromSeconds(20), cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                catch (TimeoutException)
+                {
+                    // Continue the loop if no restart arrived within the timeout.
+                }
             }
 
             this._progressPrc = 0;
             _ = this.InvokeAsync(this.StateHasChanged);
+        }
+    }
+
+    private void OnActorRestart(int actorIndex, int cycleNo)
+    {
+        if (actorIndex != 0)
+        {
+            return;
+        }
+
+        TaskCompletionSource? previousWaiter;
+        ActorStoryGroup? groupToStart;
+
+        lock (this._syncRoot)
+        {
+            previousWaiter = this._waiterForCycle;
+            this._waiterForCycle = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            this._waiterForCycleId = cycleNo;
+            groupToStart = this._activeGroup;
+        }
+
+        if (previousWaiter == null)
+        {
+            if (groupToStart != null)
+            {
+                this.StartProgressBar(groupToStart);
+            }
+        }
+        else
+        {
+            previousWaiter.TrySetResult();
         }
     }
 

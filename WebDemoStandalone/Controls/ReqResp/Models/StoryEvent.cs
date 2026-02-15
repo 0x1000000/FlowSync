@@ -1,4 +1,4 @@
-﻿namespace WebDemoStandalone.Controls.ReqResp;
+﻿namespace WebDemoStandalone.Controls.ReqResp.Models;
 
 public record StoryEvent(
     TimeSpan Delay,

@@ -1,5 +1,6 @@
 using FlowSync;
 using Microsoft.AspNetCore.Components;
+using WebDemoStandalone.Controls.ReqResp.Models;
 
 namespace WebDemoStandalone.Controls.ReqResp;
 
@@ -8,6 +9,8 @@ public partial class ReqRespActor
     private ActorStory? _actorStory;
     private int _renderScheduled;
     private int _actorPulseToken;
+
+    #region Constrol State
 
     private string _requestValue = ReqRespEmoji.Values.Unknown;
     private string _responseValue = ReqRespEmoji.Values.Na;
@@ -59,21 +62,29 @@ public partial class ReqRespActor
         private set => this.SetAndScheduleRender(ref this._isActorHighlighted, value);
     }
 
-    [Parameter]
-    public ActorStory ActorStory
+    #endregion
+
+    [Parameter] public required ActorStory ActorStory { get; set; }
+
+    [Parameter] 
+    public required EventCallback<int> OnRestart { get; set; }
+
+    protected override void OnParametersSet()
     {
-        get => this._actorStory!;
-        set
+        bool isNewStory = this.ActorStory != this._actorStory && this._actorStory != null;
+        bool isActorStoryChanged = this.ActorStory != this._actorStory;
+        this._actorStory = this.ActorStory;
+
+        if (isNewStory)
         {
-            if (this._actorStory != value)
-            {
-                this._actorStory = value;
-                _ = this.StartStoryLine(value);
-            }
+            throw new NotImplementedException("Changing of story is not implemented");
+        }
+
+        if (isActorStoryChanged && this._actorStory != null && OnRestart.HasDelegate)
+        {
+            _ = this.StartStoryLine(this._actorStory);
         }
     }
-
-    [Parameter] public int ActorIndex { get; set; }
 
     private async Task StartStoryLine(ActorStory actorStory)
     {
@@ -81,14 +92,22 @@ public partial class ReqRespActor
         this.IsActorHighlighted = false;
         this.SetInitialState();
 
+        var cycleCount = 0;
+        await this.OnRestart.InvokeAsync(cycleCount);
+
         await foreach (var request in actorStory.StoryLine.Play())
         {
             if (request.IsRestart)
             {
                 this.SetInitialState();
+
+                unchecked { cycleCount++; }
+                
+                await this.OnRestart.InvokeAsync(cycleCount);
                 continue;
             }
             _ = this.PulseActorSymbolAsync();
+
             this.IsResponseVisible = false;
             this.IsRequestVisible = true;
             this.RequestValue = request.Value.ToString();

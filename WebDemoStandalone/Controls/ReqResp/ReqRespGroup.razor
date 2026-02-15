@@ -3,7 +3,7 @@
         @for (var i = 0; i < (ActorStories?.Stories.Count ?? 0); i++)
         {
             var key = i;
-            <ReqRespActor @key="key" ActorStory="@ActorStories!.Stories[i]"></ReqRespActor>
+            <ReqRespActor @key="key" ActorStory="@ActorStories!.Stories[i]" OnRestart="cNo => OnActorRestart(key, cNo)"></ReqRespActor>
         }
     </div>
 

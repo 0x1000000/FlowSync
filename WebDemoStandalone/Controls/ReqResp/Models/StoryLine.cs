@@ -1,4 +1,4 @@
-﻿namespace WebDemoStandalone.Controls.ReqResp;
+﻿namespace WebDemoStandalone.Controls.ReqResp.Models;
 
 public record StoryLine(IEnumerable<StoryEvent> Events, IReplayCoordinator ReplayCoordinator)
 {
@@ -10,7 +10,7 @@ public record StoryLine(IEnumerable<StoryEvent> Events, IReplayCoordinator Repla
         {
             if (restart)
             {
-                yield return new (0, TimeSpan.Zero, null);
+                yield return StoryRequest.Restart;
                 restart = false;
             }
 

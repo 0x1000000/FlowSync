@@ -1,9 +1,11 @@
 using FlowSync;
+using WebDemoStandalone.Controls.ReqResp.Models;
 
 namespace WebDemoStandalone.Controls.ReqResp;
 
 public partial class ReqRespCatalog
 {
+    private readonly TimeSpan _estimatedDuration = TimeSpan.FromSeconds(10);
     private const int ActorCountPerStrategy = 3;
     private const int StrategyCount = 6;
     private const int TotalActorCount = ActorCountPerStrategy * StrategyCount;
@@ -39,12 +41,10 @@ public partial class ReqRespCatalog
 
 
         return this.CreateStoryLine(
-            strategy,
+            new ActorStorySyncStrategy.Regular(strategy),
             coordinator,
-            [E(1000, 11, 4000), E(1500, 12, 3000), E(4000, 13, 3000), E(1500, 14, 1500),],
-            [E(2000, 21, 3000), E(6000, 22, 5500),],
-            [E(3500, 31, 1500), E(3000, 32, 1500), E(5500, 33, 1500),],
-            TimeSpan.FromSeconds(20)
+            CreateUseEvents(),
+            this._estimatedDuration
 
         );
     }
@@ -54,12 +54,10 @@ public partial class ReqRespCatalog
         var strategy = new UseFirstCoalescingSyncStrategy<int>();
 
         return this.CreateStoryLine(
-            strategy,
+            new ActorStorySyncStrategy.Regular(strategy),
             coordinator,
-            [E(1000, 11, 4000), E(1500, 12, 3000), E(4000, 13, 3000), E(1500, 14, 1500),],
-            [E(2000, 21, 3000), E(6000, 22, 5500),],
-            [E(3500, 31, 1500), E(3000, 32, 1500), E(5500, 33, 1500),],
-            TimeSpan.FromSeconds(20)
+            CreateUseEvents(),
+            this._estimatedDuration
         );
     }
 
@@ -68,12 +66,10 @@ public partial class ReqRespCatalog
         var strategy = new UseLastCoalescingSyncStrategy<int>();
 
         return this.CreateStoryLine(
-            strategy,
+            new ActorStorySyncStrategy.Regular(strategy),
             coordinator,
-            [E(1000, 11, 4000), E(1500, 12, 3000), E(4000, 13, 3000), E(1500, 14, 1500),],
-            [E(2000, 21, 3000), E(6000, 22, 5500),],
-            [E(3500, 31, 1500), E(3000, 32, 1500), E(5500, 33, 1500),],
-            TimeSpan.FromSeconds(20)
+            CreateUseEvents(),
+            this._estimatedDuration
         );
     }
 
@@ -82,12 +78,10 @@ public partial class ReqRespCatalog
         var strategy = new DeBounceCoalescingSyncStrategy<int>(TimeSpan.FromMilliseconds(1500));
 
         return this.CreateStoryLine(
-            strategy,
+            new ActorStorySyncStrategy.Regular(strategy),
             coordinator,
-            [E(1000, 11, 5500), E(1000, 12, 1500), E(4000, 13, 3500),],
-            [E(2000, 21, 4500), E(1500, 22, 1000),],
-            [E(2500, 31, 4000), E(9000, 32, 1000),],
-            TimeSpan.FromSeconds(20)
+            CreateDebounceEvents(),
+            this._estimatedDuration
 
         );
     }
@@ -98,12 +92,10 @@ public partial class ReqRespCatalog
 
         // Fewer requests and shorter work still show queue behavior.
         return this.CreateStoryLine(
-            strategy,
+            new ActorStorySyncStrategy.Regular(strategy),
             coordinator,
-            [E(1000, 11, 2000), E(4000, 12, 3000),],
-            [E(2000, 21, 1500), E(2000, 22, 2000), E(6500, 23, 2500),],
-            [E(4000, 31, 4000),],
-            TimeSpan.FromSeconds(20)
+            CreateQueueEvents(),
+            this._estimatedDuration
 
         );
     }
@@ -121,51 +113,69 @@ public partial class ReqRespCatalog
         );
 
         // Aggregation-focused timeline: staggered bursts merged by buffer windows.
-        return this.CreateAggStoryLine(
-            strategy,
+        return this.CreateStoryLine(
+            new ActorStorySyncStrategy.Aggregate(strategy),
             coordinator,
-            [E(1000, 1, 5500), E(1000, 1, 1500), E(4000, 1, 3500),],
-            [E(2000, 2, 4500), E(1500, 2, 1000),],
-            [E(2500, 3, 4000), E(9000, 3, 1000),],
-            TimeSpan.FromSeconds(20)
-
+            CreateAggEvents(),
+            this._estimatedDuration
         );
     }
 
     private ActorStoryGroup CreateStoryLine(
-        IFlowSyncStrategy<int> syncStrategy,
+        ActorStorySyncStrategy actorStorySyncStrategy,
         IReplayCoordinator coordinator,
-        IReadOnlyList<StoryEvent> actor1,
-        IReadOnlyList<StoryEvent> actor2,
-        IReadOnlyList<StoryEvent> actor3,
+        IReadOnlyList<IReadOnlyList<StoryEvent>> actors,
         TimeSpan estimatedDuration)
     {
-        IReadOnlyList<ActorStory> stories =
-        [
-            new ActorStory(new StoryLine(actor1, coordinator), new ActorStorySyncStrategy.Regular(syncStrategy)),
-            new ActorStory(new StoryLine(actor2, coordinator), new ActorStorySyncStrategy.Regular(syncStrategy)),
-            new ActorStory(new StoryLine(actor3, coordinator), new ActorStorySyncStrategy.Regular(syncStrategy)),
-        ];
+        var stories = actors
+            .Select(actor => new ActorStory(
+                    new StoryLine(actor, coordinator),
+                    actorStorySyncStrategy
+                )
+            )
+            .ToList();
 
         return new ActorStoryGroup(stories, estimatedDuration);
     }
 
-    private ActorStoryGroup CreateAggStoryLine(
-        IFlowSyncAggStrategy<int, int, List<int>> syncStrategy,
-        IReplayCoordinator coordinator,
-        IReadOnlyList<StoryEvent> actor1,
-        IReadOnlyList<StoryEvent> actor2,
-        IReadOnlyList<StoryEvent> actor3,
-        TimeSpan estimatedDuration)
+    private static IReadOnlyList<IReadOnlyList<StoryEvent>> CreateUseEvents()
     {
-        IReadOnlyList<ActorStory> stories =
+        return
         [
-            new ActorStory(new StoryLine(actor1, coordinator), new ActorStorySyncStrategy.Aggregate(syncStrategy)),
-            new ActorStory(new StoryLine(actor2, coordinator), new ActorStorySyncStrategy.Aggregate(syncStrategy)),
-            new ActorStory(new StoryLine(actor3, coordinator), new ActorStorySyncStrategy.Aggregate(syncStrategy)),
+            [E(1000, 11, 4000), E(1500, 12, 3000), ],
+            [E(2000, 21, 3000), ],
+            [E(3500, 31, 1500), E(3000, 32, 1500), ],
         ];
+    }
 
-        return new ActorStoryGroup(stories, estimatedDuration);
+    private static IReadOnlyList<IReadOnlyList<StoryEvent>> CreateDebounceEvents()
+    {
+        return
+        [
+            [E(1000, 11, 4000), ],
+            [E(2000, 21, 3000), ],
+            [E(5500, 31, 2500), ],
+        ];
+    }
+
+    private static IReadOnlyList<IReadOnlyList<StoryEvent>> CreateQueueEvents()
+    {
+        return
+        [
+            [E(1000, 11, 3000), ],
+            [E(2000, 21, 2000), ],
+            [E(3000, 31, 2000), ],
+        ];
+    }
+
+    private static IReadOnlyList<IReadOnlyList<StoryEvent>> CreateAggEvents()
+    {
+        return
+        [
+            [E(1000, 1, 4000), ],
+            [E(2000, 3, 3000), ],
+            [E(5500, 7, 2500), ],
+        ];
     }
 
     private static StoryEvent E(int delayMs, int value, int processingMs)
