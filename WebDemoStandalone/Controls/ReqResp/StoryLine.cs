@@ -1,26 +1,45 @@
-﻿using FlowSync;
+﻿namespace WebDemoStandalone.Controls.ReqResp;
 
-namespace WebDemoStandalone.Controls.ReqResp;
-
-public record StoryLine(IReadOnlyList<StoryRequest> Requests, IFlowSyncStrategy<int> SyncStrategy, int Iteration = 0)
+public record StoryLine(IEnumerable<StoryEvent> Events, IReplayCoordinator ReplayCoordinator)
 {
-    public StoryLine ToNewIteration()
+    public async IAsyncEnumerable<StoryRequest> Play()
     {
-        unchecked
+        var restart = false;
+
+        while (true)
         {
-            return this with { Iteration = this.Iteration + 1 };
+            if (restart)
+            {
+                yield return new (0, TimeSpan.Zero, null);
+                restart = false;
+            }
+
+            StoryEvent? previousEvent = null;
+            foreach (var storyEvent in this.Events)
+            {
+                if (previousEvent != null)
+                {
+                    yield return new(previousEvent.Value, previousEvent.ProcessingTime, null);
+                }
+                await Task.Delay(storyEvent.Delay);
+                previousEvent = storyEvent;
+            }
+
+            if (previousEvent != null)
+            {
+                TaskCompletionSource tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                yield return new(previousEvent.Value, previousEvent.ProcessingTime, () => tcs.TrySetResult());
+
+                await tcs.Task;
+
+                restart = true;
+            }
+
+            if (!await this.ReplayCoordinator.WaitAsync())
+            {
+                break;
+            }
         }
     }
 }
-
-public record StoryRequest(
-    TimeSpan Delay,
-    int Value,
-    TimeSpan ProcessingTime
-);
-
-
-
-
-
-

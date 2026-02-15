@@ -5,15 +5,17 @@ namespace WebDemoStandalone.Controls.ReqResp;
 
 public partial class ReqRespActor
 {
-    private StoryLine? _storyLine;
+    private ActorStory? _actorStory;
     private int _renderScheduled;
+    private int _actorPulseToken;
 
-    private string _requestValue = ReqRespEmoji.Unknown;
-    private string _responseValue = ReqRespEmoji.Na;
-    private string _serverState = ReqRespEmoji.Sleep;
-    private string _serverRequest = string.Empty;
+    private string _requestValue = ReqRespEmoji.Values.Unknown;
+    private string _responseValue = ReqRespEmoji.Values.Na;
+    private string _serverState = ReqRespEmoji.Statuses.Sleep;
+    private string _serverRequestedValue = string.Empty;
     private bool _isRequestVisible;
     private bool _isResponseVisible;
+    private bool _isActorHighlighted;
 
     protected string RequestValue
     {
@@ -33,10 +35,10 @@ public partial class ReqRespActor
         private set => this.SetAndScheduleRender(ref this._serverState, value);
     }
 
-    protected string ServerRequest
+    protected string ServerRequestedValue
     {
-        get => this._serverRequest;
-        private set => this.SetAndScheduleRender(ref this._serverRequest, value);
+        get => this._serverRequestedValue;
+        private set => this.SetAndScheduleRender(ref this._serverRequestedValue, value);
     }
 
     protected bool IsRequestVisible
@@ -51,81 +53,135 @@ public partial class ReqRespActor
         private set => this.SetAndScheduleRender(ref this._isResponseVisible, value);
     }
 
-    [Parameter]
-    public StoryLine StoryLine
+    protected bool IsActorHighlighted
     {
-        get => this._storyLine!;
+        get => this._isActorHighlighted;
+        private set => this.SetAndScheduleRender(ref this._isActorHighlighted, value);
+    }
+
+    [Parameter]
+    public ActorStory ActorStory
+    {
+        get => this._actorStory!;
         set
         {
-            if (this._storyLine != value)
+            if (this._actorStory != value)
             {
-                this._storyLine = value;
+                this._actorStory = value;
                 _ = this.StartStoryLine(value);
             }
         }
     }
 
-    [Parameter]
-    public int ActorId { get; set; }
+    [Parameter] public int ActorIndex { get; set; }
 
-    [Parameter]
-    public EventCallback<int> StoryLineFinished { get; set; }
-
-    private async Task StartStoryLine(StoryLine storyLine)
+    private async Task StartStoryLine(ActorStory actorStory)
     {
-        this.ServerState = ReqRespEmoji.Sleep;
-        this.IsResponseVisible = false;
-        this.IsRequestVisible = false;
-        this.RequestValue = ReqRespEmoji.Unknown;
-        this.ResponseValue = ReqRespEmoji.Unknown;
-        this.ServerRequest = string.Empty;
+        Interlocked.Increment(ref this._actorPulseToken);
+        this.IsActorHighlighted = false;
+        this.SetInitialState();
 
-        foreach (var request in storyLine.Requests)
+        await foreach (var request in actorStory.StoryLine.Play())
         {
-            await Task.Delay(request.Delay);
+            if (request.IsRestart)
+            {
+                this.SetInitialState();
+                continue;
+            }
+            _ = this.PulseActorSymbolAsync();
             this.IsResponseVisible = false;
             this.IsRequestVisible = true;
             this.RequestValue = request.Value.ToString();
-            this.ResponseValue = ReqRespEmoji.Unknown;
-            this.ServerRequest = string.Empty;
-            this.ServerState = ReqRespEmoji.Processing;
+            this.ResponseValue = ReqRespEmoji.Statuses.Pending;
+            this.ServerRequestedValue = string.Empty;
+            this.ServerState = ReqRespEmoji.Statuses.Pending;
+            if (actorStory.SyncStrategy is ActorStorySyncStrategy.Regular { Strategy: UseFirstCoalescingSyncStrategy<int> })
+            {
+                //Liskov substitution principle violation :(
+                //Think of how to notify that a request is rejected
+                this.ServerState = ReqRespEmoji.Statuses.Stop;
+            }
 
-            var result = await this.Process(request.Value, request.ProcessingTime)
-                .CoalesceInDefaultGroupUsing(storyLine.SyncStrategy);
+            var result = await this.RunRequestUsingSyncStrategy(actorStory, request);
 
             this.IsRequestVisible = false;
             this.IsResponseVisible = true;
 
-            this.ServerState = result != request.Value ? ReqRespEmoji.Redirected : ReqRespEmoji.Completed;
-
+            this.ServerState = result != request.Value ? ReqRespEmoji.Statuses.Redirected : ReqRespEmoji.Statuses.Completed;
+            this.ServerRequestedValue = string.Empty;
             this.ResponseValue = result.ToString();
-        }
 
-        if (this.StoryLineFinished.HasDelegate)
-        {
-           await this.StoryLineFinished.InvokeAsync(this.ActorId);
+            request.CompletionNotifier?.Invoke();
         }
     }
 
-    private async FlowSyncTask<int> Process(int requestedValue, TimeSpan processingTime)
+    private async Task<int> RunRequestUsingSyncStrategy(ActorStory actorStory, StoryRequest request)
     {
-        this.ServerRequest = requestedValue.ToString();
+        return actorStory.SyncStrategy switch
+        {
+            ActorStorySyncStrategy.Regular regular => await this.Process(request.Value, request.ProcessingTime)
+                .CoalesceInDefaultGroupUsing(regular.Strategy),
+            ActorStorySyncStrategy.Aggregate aggregate => await FlowSyncAggTask
+                .Create<int, List<int>>((values, ct) => this.Process(values.Sum(), request.ProcessingTime, ct).StartAsTask())
+                .CoalesceInDefaultGroupUsing(aggregate.Strategy, request.Value),
+            _ => throw new InvalidOperationException("Unknown actor story sync strategy")
+        };
+    }
 
-        var cc = await FlowSyncTask.GetCancellationContext();
+    private async FlowSyncTask<int> Process(
+        int requestedValue,
+        TimeSpan processingTime,
+        CancellationToken explicitToken = default)
+    {
+        this.ServerRequestedValue = requestedValue.ToString();
+        this.ServerState = ReqRespEmoji.Statuses.InProgress;
+
+        CancellationToken cancellationToken;
+        if (explicitToken == default)
+        {
+            var cc = await FlowSyncTask.GetCancellationContext();
+            cancellationToken = cc.CancellationToken;
+        }
+        else
+        {
+            cancellationToken = explicitToken;
+        }
 
         try
         {
-            await Task.Delay(processingTime, cc.CancellationToken);
+            await Task.Delay(processingTime, cancellationToken);
+            this.ServerState = ReqRespEmoji.Statuses.Finished;
+            this.ServerRequestedValue = string.Empty;
         }
-        catch (OperationCanceledException e)
+        catch (OperationCanceledException)
         {
-            this.ServerRequest = string.Empty;
-            this.ServerState = ReqRespEmoji.Canceled;
+            this.ServerState = ReqRespEmoji.Statuses.Canceled;
         }
-
-        this.ServerRequest = string.Empty;
 
         return requestedValue;
+    }
+
+    private void SetInitialState()
+    {
+        this.RequestValue = ReqRespEmoji.Values.Unknown;
+        this.ResponseValue = ReqRespEmoji.Values.Unknown;
+        this.IsResponseVisible = false;
+        this.IsRequestVisible = false;
+        this.ServerState = ReqRespEmoji.Statuses.Sleep;
+        this.ServerRequestedValue = string.Empty;
+    }
+
+    private async Task PulseActorSymbolAsync()
+    {
+        var pulseToken = Interlocked.Increment(ref this._actorPulseToken);
+        this.IsActorHighlighted = true;
+
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
+
+        if (pulseToken == Volatile.Read(ref this._actorPulseToken))
+        {
+            this.IsActorHighlighted = false;
+        }
     }
 
     private void SetAndScheduleRender<T>(ref T field, T value)

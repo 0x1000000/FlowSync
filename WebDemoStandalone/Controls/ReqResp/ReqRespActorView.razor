@@ -8,41 +8,48 @@
 
 <div class="sim-layout">
 
-    <span class="actor">@ActorEmoji</span>
+    <span class="actor-wrap">
+        <span class="actor">@ActorEmoji</span>
+        <span class="actor-indicator @(IsActorHighlighted ? "actor-indicator--on" : string.Empty)" aria-hidden="true"></span>
+    </span>
 
     <div class="reqresp-values">
-        <span class="req-value">@RequestValue</span>
-        <span class="reqresp-value-divider">/ </span>
-        @if (ResponseValue == ReqRespEmoji.Processing)
+        <span class="req-value reqresp-value-slot" title="@RequestValueHint">@RequestValue</span>
+        <span class="reqresp-value-divider">/</span>
+        @if (ResponseValue == ReqRespEmoji.Statuses.Pending)
         {
-            <span>@ReqRespEmoji.Processing</span>
+            <span class="reqresp-value-slot" title="@ResponseValueHint">@ReqRespEmoji.Statuses.Pending</span>
         }
         else
         {
-            <span class="resp-value">@ResponseValue</span>
+            <span class="resp-value reqresp-value-slot" title="@ResponseValueHint">@ResponseValue</span>
         }
     </div>
 
-    <div class="arrow-stack">
-        @if (this.IsRequestVisible)
-        {
-            <svg class="arrow" viewBox="0 0 300 100" role="img" aria-label="Right-pointing arrow">
-                <use href="#reqresp-arrow"/>
-            </svg>
-        }
-        
-        @if (this.IsResponseVisible)
-        {
-            <svg class="arrow arrow--left" viewBox="0 0 300 100" role="img" aria-label="Left-pointing arrow">
-                <use href="#reqresp-arrow"/>
-            </svg>
-        }
+    <div class="arrow-stack" title="@ArrowStackHint" aria-label="@ArrowStackHint">
+        <svg
+            class="arrow @(this.IsRequestVisible ? string.Empty : "arrow--hidden")"
+            viewBox="0 0 300 100"
+            role="img"
+            aria-label="Right-pointing arrow">
+            <use href="#reqresp-arrow"/>
+        </svg>
+
+        <svg
+            class="arrow arrow--left @(this.IsResponseVisible ? string.Empty : "arrow--hidden")"
+            viewBox="0 0 300 100"
+            role="img"
+            aria-label="Left-pointing arrow">
+            <use href="#reqresp-arrow"/>
+        </svg>
     </div>
     
     <div class="reqresp-server">
-        <span>@ReqRespEmoji.Server</span>
-        <span>@ServerState</span>
-        <span>@ServerRequest</span>
+        <span class="reqresp-server-icon">@ReqRespEmoji.Actors.Server</span>
+        <span class="reqresp-server-state" title="@ServerStateHint">@ServerState</span>
+        <span
+            class="reqresp-server-requested-value requested-value @(ServerState == ReqRespEmoji.Statuses.Canceled ? "requested-value--canceled" : string.Empty)"
+            title="@ServerRequestedValueHint">@ServerRequestedValueDisplay</span>
     </div>
 
 </div>

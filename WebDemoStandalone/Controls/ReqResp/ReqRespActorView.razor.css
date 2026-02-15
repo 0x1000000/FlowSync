@@ -8,60 +8,120 @@
 .sim-layout {
   display: flex;
   align-items: center;
-  gap: 12px;
+  white-space:nowrap;
+  gap: 8px;
+  width: max-content;
 }
 
-.actor-icon {
-  width: 26px;
-  height: 40px;
-  display: block;
-  color: #334155;
-  flex: 0 0 auto;
-}
-
-.arrow-stack {
-  display: flex;
-  flex-direction: column;
-  width: 30px;
-}
-
-.arrow {
-  width: 30px;
-  height: 10px;
-  display: block;
-  color: #2563eb;
-}
-
-.arrow--left {
-  margin-top: 6px;
-  transform: scaleX(-1);
-  transform-origin: center;
-  color: #dc2626;
+.actor-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    width: 36px;
 }
 
 .actor {
-    font-size: 1.2rem;
+    font-size: 19px;
+    display: inline-block;
+}
+
+.actor-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: transparent;
+    display: inline-block;
+}
+
+.actor-indicator--on {
+    background: #dc2626;
 }
 
 .reqresp-values {
-    width: 60px;
+    width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .req-value {
     color: #2563eb;
-    font-size: 1.1rem;
+    font-size: 18px;
 }
 
 .reqresp-value-divider {
-    font-size: 1.3rem;
+    font-size: 21px;
     font-weight: bold;
+    width: 10px;
+    text-align: center;
 }
 
 .resp-value {
-    color: #dc2626;
-    font-size: 1.1rem;
+    color: green;
+    font-size: 18px;
+}
+
+.reqresp-value-slot {
+    display: inline-block;
+    width: 28px;
+    text-align: center;
+}
+
+.arrow-stack {
+  position: relative;
+  width: 30px;
+  height: 16px;
+  min-width: 30px;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 30px;
+  height: 10px;
+  display: block;
+  color: #2563eb;
+  transform: translateY(-50%);
+}
+
+.arrow--left {
+    transform: translateY(-50%) scaleX(-1);
+    transform-origin: center center;
+    color: green;
+}
+
+.arrow--hidden {
+    visibility: hidden;
 }
 
 .reqresp-server {
-    font-size: 1.2rem;
+    font-size: 19px;
+    width: 82px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.reqresp-server-icon {
+    width: 27px;
+}
+
+.reqresp-server-state {
+    width: 27px;
+}
+
+.reqresp-server-requested-value {
+    width: 24px;
+}
+
+.requested-value {
+    color: orangered;
+    display: inline-block;
+    min-width: 24px;
+    text-align: left;
+}
+
+.requested-value--canceled {
+    text-decoration: line-through;
 }

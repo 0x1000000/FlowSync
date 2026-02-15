@@ -1,104 +1,133 @@
-using FlowSync;
 using Microsoft.AspNetCore.Components;
 
 namespace WebDemoStandalone.Controls.ReqResp;
 
-public partial class ReqRespGroup
+public partial class ReqRespGroup : IDisposable
 {
-    private readonly HashSet<int> _completedActorIds = [];
-    private IFlowSyncStrategy<int>? _syncStrategy;
-
-    public ReqRespGroup()
-    {
-    }
+    private readonly object _syncRoot = new();
+    private ActorStoryGroup? _actorStories;
+    private CancellationTokenSource? _pbCancellationTokenSource;
+    private int _progressPrc;
 
     [Parameter]
-    public IFlowSyncStrategy<int>? SyncStrategy
+    public ActorStoryGroup? ActorStories
     {
-        get => this._syncStrategy;
+        get => this._actorStories;
         set
         {
-            if (this._syncStrategy != value)
+            if (this._actorStories != value)
             {
-                this._syncStrategy = value;
+                this._actorStories = value;
                 if (value != null)
                 {
-                    this.InitStoryLines(value);
+                    this.StartProgressBar(value);
+                }
+                else
+                {
+                    this.StopProgressBar();
                 }
             }
         }
     }
 
-    private void InitStoryLines(IFlowSyncStrategy<int> syncStrategy)
+    protected string ProgressStyle => $"width: {this._progressPrc}%;";
+
+    private void StartProgressBar(ActorStoryGroup group)
     {
-        var processingTime = TimeSpan.FromMilliseconds(6400);
+        CancellationTokenSource? previousCts;
 
-        // 2x slower pacing for clearer observation:
-        // - Simultaneous starts (actors 3 and 4 at 5200ms)
-        // - Long gap before second request per actor
-        // - Late second phase requests
-        this.StoryLines =
-        [
-            new StoryLine(
-                [
-                    new StoryRequest(TimeSpan.FromMilliseconds(1600), 10, processingTime),
-                    new StoryRequest(TimeSpan.FromMilliseconds(7600), 11, processingTime)
-                ],
-                syncStrategy
-            ),
-            new StoryLine(
-                [
-                    new StoryRequest(TimeSpan.FromMilliseconds(3400), 20, processingTime),
-                    new StoryRequest(TimeSpan.FromMilliseconds(4400), 21, processingTime)
-                ],
-                syncStrategy
-            ),
-            new StoryLine(
-                [
-                    new StoryRequest(TimeSpan.FromMilliseconds(5200), 30, processingTime),
-                    new StoryRequest(TimeSpan.FromMilliseconds(4400), 31, processingTime)
-                ],
-                syncStrategy
-            ),
-            new StoryLine(
-                [
-                    new StoryRequest(TimeSpan.FromMilliseconds(5200), 40, processingTime),
-                    new StoryRequest(TimeSpan.FromMilliseconds(4800), 41, processingTime)
-                ],
-                syncStrategy
-            ),
-            new StoryLine(
-                [
-                    new StoryRequest(TimeSpan.FromMilliseconds(8400), 50, processingTime),
-                    new StoryRequest(TimeSpan.FromMilliseconds(5200), 51, processingTime)
-                ],
-                syncStrategy
-            ),
-        ];
-    }
-
-    protected IReadOnlyList<StoryLine>? StoryLines { get; private set; }
-
-    protected async Task OnActorStoryLineCompleted(int actorId)
-    {
-        lock (this._completedActorIds)
+        lock (this._syncRoot)
         {
-            if (!this._completedActorIds.Add(actorId))
-            {
-                return;
-            }
-
-            if (this._completedActorIds.Count < this.StoryLines.Count)
-            {
-                return;
-            }
-            this._completedActorIds.Clear();
+            previousCts = this._pbCancellationTokenSource;
+            this._pbCancellationTokenSource = new CancellationTokenSource();
+            this._progressPrc = 0;
         }
 
-        await Task.Delay(TimeSpan.FromSeconds(6));
+        previousCts?.Cancel();
+        previousCts?.Dispose();
 
-        this.StoryLines = this.StoryLines.Select(s=>s.ToNewIteration()).ToList();
+        _ = this.RunProgressBar(group, this._pbCancellationTokenSource.Token);
+        _ = this.InvokeAsync(this.StateHasChanged);
+    }
 
-        await this.InvokeAsync(this.StateHasChanged);
+    private void StopProgressBar()
+    {
+        CancellationTokenSource? cts;
+
+        lock (this._syncRoot)
+        {
+            cts = this._pbCancellationTokenSource;
+            this._pbCancellationTokenSource = null;
+            this._progressPrc = 0;
+        }
+
+        cts?.Cancel();
+        cts?.Dispose();
+        _ = this.InvokeAsync(this.StateHasChanged);
+    }
+
+    private async Task RunProgressBar(ActorStoryGroup group, CancellationToken cancellationToken)
+    {
+        var targetDuration = group.EstimatedDuration > TimeSpan.Zero
+            ? group.EstimatedDuration
+            : TimeSpan.FromSeconds(1);
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var start = DateTime.UtcNow;
+            var end = start.Add(targetDuration);
+            var delay = TimeSpan.FromSeconds(2);
+
+            while (!cancellationToken.IsCancellationRequested && DateTime.UtcNow <= end)
+            {
+                var elapsed = DateTime.UtcNow - start;
+                var progress = (int)Math.Round((elapsed.TotalMilliseconds / targetDuration.TotalMilliseconds) * 100);
+                progress = Math.Clamp(progress, 0, 100);
+
+                if (progress != this._progressPrc)
+                {
+                    this._progressPrc = progress;
+                    _ = this.InvokeAsync(this.StateHasChanged);
+                }
+
+                try
+                {
+                    await Task.Delay(delay, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+
+            this._progressPrc = 100;
+            _ = this.InvokeAsync(this.StateHasChanged);
+
+            var tasks = group.Stories
+                .Select(x => x.StoryLine.ReplayCoordinator.WaitWithoutCountingAsync(cancellationToken).AsTask())
+                .ToList();
+
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (tasks.Any(r => r.IsFaulted || !r.Result))
+            {
+                break;
+            }
+
+            this._progressPrc = 0;
+            _ = this.InvokeAsync(this.StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        this.StopProgressBar();
     }
 }

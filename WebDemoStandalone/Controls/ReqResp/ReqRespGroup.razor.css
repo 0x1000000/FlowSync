@@ -1,0 +1,31 @@
+.reqresp-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.reqresp-group__actors {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.reqresp-group__progress-wrap {
+    display: flex;
+    align-items: center;
+}
+
+.reqresp-group__progress {
+    height: 3px;
+    flex: 1 1 auto;
+    background-color: #edf0f3;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.reqresp-group__progress-fill {
+    height: 100%;
+    width: 0;
+    background: #c7ccd3;
+    opacity: 0.75;
+}

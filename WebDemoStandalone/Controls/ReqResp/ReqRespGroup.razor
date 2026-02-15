@@ -1,9 +1,15 @@
-@for (var i = 0; i < (StoryLines?.Count ?? 0); i++)
-{
-    <ReqRespActor
-        @key="i"
-        ActorId="@i"
-        StoryLine="@StoryLines![i]"
-        StoryLineFinished="@OnActorStoryLineCompleted">
-    </ReqRespActor>
-}
+<div class="reqresp-group">
+    <div class="reqresp-group__actors">
+        @for (var i = 0; i < (ActorStories?.Stories.Count ?? 0); i++)
+        {
+            var key = i;
+            <ReqRespActor @key="key" ActorStory="@ActorStories!.Stories[i]"></ReqRespActor>
+        }
+    </div>
+
+    <div class="reqresp-group__progress-wrap" title="Group progress before replay">
+        <div class="reqresp-group__progress">
+            <div class="reqresp-group__progress-fill" style="@ProgressStyle"></div>
+        </div>
+    </div>
+</div>

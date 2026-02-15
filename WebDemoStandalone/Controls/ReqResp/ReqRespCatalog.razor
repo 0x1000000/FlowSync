@@ -1,26 +1,31 @@
 <div class="catalog-grid">
     <section class="catalog-item">
         <h3>No Coalescing</h3>
-        <ReqRespGroup SyncStrategy="NoCoalescingSyncStrategy"></ReqRespGroup>
+        <ReqRespGroup ActorStories="NoCoalescingSyncStrategy"></ReqRespGroup>
     </section>
 
     <section class="catalog-item">
         <h3>Use First</h3>
-        <ReqRespGroup SyncStrategy="UseFirstCoalescingSyncStrategy"></ReqRespGroup>
+        <ReqRespGroup ActorStories="UseFirstCoalescingSyncStrategy"></ReqRespGroup>
     </section>
 
     <section class="catalog-item">
         <h3>Use Last</h3>
-        <ReqRespGroup SyncStrategy="UseLastCoalescingSyncStrategy"></ReqRespGroup>
+        <ReqRespGroup ActorStories="UseLastCoalescingSyncStrategy"></ReqRespGroup>
     </section>
 
     <section class="catalog-item">
         <h3>DeBounce</h3>
-        <ReqRespGroup SyncStrategy="DeBounceCoalescingSyncStrategy"></ReqRespGroup>
+        <ReqRespGroup ActorStories="DeBounceCoalescingSyncStrategy"></ReqRespGroup>
     </section>
 
     <section class="catalog-item">
         <h3>Queue</h3>
-        <ReqRespGroup SyncStrategy="QueueCoalescingSyncStrategy"></ReqRespGroup>
+        <ReqRespGroup ActorStories="QueueCoalescingSyncStrategy"></ReqRespGroup>
+    </section>
+
+    <section class="catalog-item">
+        <h3>Agg</h3>
+        <ReqRespGroup ActorStories="AggCoalescingSyncStrategy"></ReqRespGroup>
     </section>
 </div>
