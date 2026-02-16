@@ -1,13 +1,59 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <NoWarn>1701;1702;CS1591</NoWarn>
+    <WarningsNotAsErrors></WarningsNotAsErrors>
+
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <Version>0.0.1</Version>
+    <PackageVersion>0.0.1</PackageVersion>
+    <AssemblyVersion>0.0.1.0</AssemblyVersion>
+    <FileVersion>0.0.1.0</FileVersion>
+
+    <PackageId>FlowSync</PackageId>
+    <Title>Flow Sync</Title>
+    <Description>Lightweight async coalescing library for .NET with use-first/use-last/queue/debounce/aggregate strategies.</Description>
+    <Authors>Dmitriy Tikhonov</Authors>
+    <PackageTags>async;coalescing;concurrency;debounce;batching;dotnet</PackageTags>
+    <PackageProjectUrl>https://github.com/0x1000000/FlowSync</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/0x1000000/FlowSync.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Deterministic>true</Deterministic>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>FlowSync.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
-    <ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(SignAssembly)' == 'true'">
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>FlowSyncTest, PublicKey=002400000480000014020000060200000024000052534131001000000100010099052AF451D17EC93038ED98E209ABE381533E6AD0CF9411C62E2B6B6AD3C09FD89B5CFF871F0DF812CC3DB929939000B93CB2697F375E6C4EE2CC38A8F0AE65499FED9BC8953B1FE5D7D2ACB5C92395C379926A9EBC310F3F5DD5937991218734E010B8351125AE608DCF6BF1A63730C8E70D4C2E4254EBD57EB2E46FCA24FAC28CA402165F2BAEC1F406703BC6B3C7833BCB5E80940EF2ECD12FD35608F4BDC5DFEAAB9FB73FEED6BC51EA8D873721950339022651C9A9BEBEA487055CF2792929803494EC24D2A9A8A9B390DAB228342C940A478285784AEF03DA71BAEEED0C666F2FF9D07D28127027D34E4C3EE64B3603F02B84839701651384AD9EBE3E974F2AF5C3216C2940D4EE075056A6CEE25E6C821F0B4696C957BDA2AEC7CFE2C15A77733AE49C442CBD6D47BFAF5F77E1D09BF946ABC933D4609C552C6AF074BF0C689079C98D065B05197589D5DD45247F6D9A9384DEB3E8D42C306DBD39F2154335EE7EFA2473B3B7D39864C84C55578063291E9519E6EB9D1918D7B9B0870BB0C7D47FCEE09E915EC61A3113778A8462E66FADA73D6D5CF0E036B73A2BE432A161D1A4AC4059222474FA2D0EDE415561F48D33147172E00003166B2F27FF49CBFC487C30BC55AE583AEE55C7003DEDBF4481FF75395DD01D838B7E7A2371FD20F12574D489060715AC5CE3901F6517A55C2BAF4FBE4F5C04EC664B9311B0</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(SignAssembly)' != 'true'">
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>FlowSyncTest</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
+
 </Project>

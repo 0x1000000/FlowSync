@@ -20,7 +20,7 @@ public class AggCoalescingSyncStrategyTest
 
         var jobCtx = new JobCtx();
 
-        var flowSyncAggTask = FlowSyncAggTask.Create<int, List<int>>((acc, ct) => Job(acc, 200, jobCtx, ct));
+        var flowSyncAggTask = FlowSyncAggTask.Create<int, List<int>>((acc, ct) => Job(acc, 200, null, jobCtx, ct));
 
         List<FlowSyncTaskAwaiter<int>> awaiters = [];
         for (var i = 1; i <= 10; i++)
@@ -55,14 +55,21 @@ public class AggCoalescingSyncStrategyTest
 
         var jobCtx = new JobCtx();
 
-        var flowSyncAggTask = FlowSyncAggTask.Create<int, List<int>>((acc, ct) => Job(acc, 10, jobCtx, ct));
+        TaskCompletionSource tcs = new();
+
+        var flowSyncAggTask = FlowSyncAggTask.Create<int, List<int>>((acc, ct) => Job(acc, 10, ()=> tcs.Task, jobCtx, ct));
 
         List<FlowSyncTaskAwaiter<int>> awaiters = [];
-        for (var i = 1; i <= 10; i++)
+        for (var i = 1; i <= 5; i++)
         {
             awaiters.Add(flowSyncAggTask.CoalesceInDefaultGroupUsing(strategy, i).Start());
-            await Task.Delay(10);
         }
+        await Task.Delay(1);
+        for (var i = 6; i <= 10; i++)
+        {
+            awaiters.Add(flowSyncAggTask.CoalesceInDefaultGroupUsing(strategy, i).Start());
+        }
+        tcs.SetResult();
 
         HashSet<int> results = [];
         foreach (var awaiter in awaiters)
@@ -70,11 +77,10 @@ public class AggCoalescingSyncStrategyTest
             results.Add(await awaiter);
         }
 
-        Assert.That(results.Count, Is.GreaterThanOrEqualTo(2));
+        Assert.That(results.Count, Is.EqualTo(1));
         if (rollingBuffer)
         {
             Assert.That(results.Sum(), Is.EqualTo(55));
-            
         }
         else
         {
@@ -102,7 +108,7 @@ public class AggCoalescingSyncStrategyTest
 
         var jobCtx = new JobCtx();
 
-        var flowSyncAggTask = FlowSyncAggTask.Create<int, List<int>>((acc, ct) => Job(acc, 1000, jobCtx, ct));
+        var flowSyncAggTask = FlowSyncAggTask.Create<int, List<int>>((acc, ct) => Job(acc, 1000, null, jobCtx, ct));
 
         List<FlowSyncTaskAwaiter<int>> awaiters = [];
         for (var i = 1; i <= 10; i++)
@@ -129,12 +135,19 @@ public class AggCoalescingSyncStrategyTest
         }
     }
 
-    private static async Task<int> Job(List<int> ids, int delayMs, JobCtx jobCtx, CancellationToken ct)
+    private static async Task<int> Job(List<int> ids, int? delayMs, Func<Task>? waiter, JobCtx jobCtx, CancellationToken ct)
     {
         jobCtx.RunCounter++;
         try
         {
-            await Task.Delay(delayMs, ct);
+            if (waiter != null)
+            {
+                await waiter();
+            }
+            if (delayMs.HasValue)
+            {
+                await Task.Delay(delayMs.Value, ct);
+            }
         }
         catch (OperationCanceledException)
         {

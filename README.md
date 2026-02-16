@@ -3,6 +3,7 @@
 FlowSync is a lightweight **async coalescing** library for .NET. It lets multiple callers share a single in-flight operation while choosing a **strategy** for how competing calls are handled.
 
 ## Demo Site: https://0x1000000.github.io/FlowSync/
+## Video Intro: https://www.youtube.com/watch?v=wwSU83Qpjts
 
 
 **Key Ideas**

@@ -16,8 +16,7 @@ public partial class Grid
         set;
     }
 
-    [Parameter] 
-    public string Header { get; set; }
+    [Parameter] public string Header { get; set; } = string.Empty;
 
     public string GroupFilter { get; set; } = string.Empty;
 

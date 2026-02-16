@@ -9,9 +9,9 @@ public class CancellationTokenAwaiter : INotifyCompletion
     {
     }
 
-    internal IFlowCancellationContext CancellationContext;
+    internal IFlowCancellationContext? CancellationContext;
 
-    public IFlowCancellationContext GetResult() => this.CancellationContext;
+    public IFlowCancellationContext GetResult() => this.CancellationContext ?? throw new InvalidOperationException("CancellationContext is supposed to be initialized here");
 
     public bool IsCompleted => false; //Always go to AwaitOnCompleted
 
