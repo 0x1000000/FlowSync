@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "WebDemoStandalone",
   "resources": {
-    "hash": "sha256-Mt16OMeprd4VrpAYbxgeQAlGVuJDgTW1vlJJ1Pj3oSo=",
+    "hash": "sha256-fQkyyQBgDCW45fme27atea9GskN+m9vTxob1dw/QU90=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-NljIbpK/1KCj0+knpX8U77Rbl5kTtfFIuFjK7AuczEw="
     },
@@ -18,7 +18,7 @@
     },
     "coreAssembly": {},
     "assembly": {
-      "FlowSync.wasm": "sha256-TX+6g6Pam/V9ARxPLHvMIxBfIIE6bAq4ff7/MQbhOl8=",
+      "FlowSync.wasm": "sha256-QBx29BHgrN4WntnFDOlghVeAdkikZEXD6EkXye9R+ZI=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-6htL6aDVzEdSWDvcz+L6hzAlo4zbovW/NrrIGabb4BU=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-RkXlT5clMmPhxYaWd9poYaDN2SwMY8CGnp964G4LXR0=",
       "Microsoft.AspNetCore.Components.WebAssembly.wasm": "sha256-eNcZI4zVnxg29F/qNblTjo16Z+mAuAGIJpq6mXzNjDg=",
@@ -46,13 +46,13 @@
       "System.Private.Uri.wasm": "sha256-yrg7SmeyYnV5yopgdv8At+v8IJXgcZqtdQ8XGfqpby0=",
       "System.Runtime.InteropServices.JavaScript.wasm": "sha256-6hdGkh80Le78a9cg0/X1jE6bN7MJcXfdZhyjTFvqx4M=",
       "System.Runtime.InteropServices.wasm": "sha256-5+pT7EyO/wfX1QJ29bpYPjRu8rHi0jJ1PNOOZMFlTh0=",
-      "System.Runtime.wasm": "sha256-UcoAa7tXsdXtT3vJ9mAvMH2sXgB7TflMM0Xa0c8UmOk=",
+      "System.Runtime.wasm": "sha256-fNi/ocDfFEti2gUEv2RlioTdHx9jFPtPpF4YQrqyFMg=",
       "System.Text.Encodings.Web.wasm": "sha256-YZTyVkf+6++HcEP8mHZ6czMP3Ul886NWB5TYbCMFawE=",
       "System.Text.Json.wasm": "sha256-5YtWzUgclJB6CcDT8FNaKnAGbYQEG3DZq0x2IX8wfIQ=",
       "System.Text.RegularExpressions.wasm": "sha256-nE7XCiyeCswUnRGdXOQvcHP+XMWXcToACrazpZlocBI=",
       "System.Threading.ThreadPool.wasm": "sha256-1+beRd+n11aJWeu7VKSM416AIjNldwsdvs6aYVnwSRk=",
       "System.Threading.wasm": "sha256-RPH2hYvzg7YL1twwOzjT/zmLW5ujG61qxkcHWM5Cx80=",
-      "WebDemoStandalone.wasm": "sha256-VYxCdFW3+4OPsIDMd6zepuumze7UVk7S42y1MjU2Hr0="
+      "WebDemoStandalone.wasm": "sha256-GTuVoXeBQjsY9rzUfYYEkroH+BQkRhxVf7dh2LAqX7U="
     }
   },
   "cacheBootResources": true,
