@@ -103,6 +103,23 @@ code {
     color: #c02d76;
 }
 
+/* Rounded-corner rendering fix for mobile zoom/WebKit scaling artifacts.
+   Use .radius-render-fix on any future rounded element. */
+.radius-render-fix,
+.primary-button,
+select,
+.toggle-btn,
+.progress-container,
+.progress-status,
+.result-box,
+.spinner,
+.actor-indicator,
+.reqresp-group__progress {
+    background-clip: padding-box;
+    -webkit-background-clip: padding-box;
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
 .primary-button {
     background-color: var(--main-color-control-bg);
     background-color: var(--main-color-control-bg);
@@ -120,9 +137,6 @@ code {
     overflow: hidden;
     appearance: none;
     -webkit-appearance: none;
-    background-clip: padding-box;
-    -webkit-background-clip: padding-box;
-    -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 .primary-button:hover:not(:disabled) {
