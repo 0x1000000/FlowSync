@@ -1,44 +1,101 @@
-﻿@page "/"
+@page "/"
 @using WebDemoStandalone.Controls.ReqResp
-<section>
-    <h2>Async Coalescing Strategies in .NET</h2>
-    <p>
-        Asynchronous operations are everywhere — from UI apps reacting to user input, to backend services processing requests. 
-        But what happens when multiple async processes try to access the same resource at the same time? 
-        Without coordination, you end up with duplicated work, race conditions, and wasted resources.
-    </p>
-    <p>
-        .NET 9 recently introduced basic task coalescing in caching — where only one operation runs and others await its result. 
-        But that’s just one simple case. In reality, we often need more control over how concurrent async calls are grouped, 
-        prioritized, or delayed.
-    </p>
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/wwSU83Qpjts?si=lGB7G2k-2Xg1qo7D" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-    <p>
-        This demo explores four coalescing strategies that help streamline async workflows by customizing how overlapping calls are handled:
-        <ul>
-            <li><a href="demo/UseFirst"><strong>Use First</strong></a> – <em>Run once, reuse result</em></li>
-            <li><a href="demo/UseLast"><strong>Use Last</strong></a> – <em>Cancel previous, keep latest</em></li>
-            <li><a href="demo/Queue"><strong>Queue (with Use Last)</strong></a> – <em>One at a time, return last</em></li>
-            <li><a href="demo/DeBounce"><strong>Use Last with Debounce</strong></a> – <em>Wait for quiet, then run</em></li>
-            <li><a href="demo/Agg"><strong>Aggregate</strong></a> – <em>Buffer and batch requests</em></li>
-        </ul>
-    </p>
-    <ReqRespCatalog></ReqRespCatalog>
-    <p>
-        Curious what happens without any strategy at all? 
-        <a href="demo/NoSync">See the “No Synchronization” demo →</a>
-    </p>
-    <h3>Realistic Demo</h3>
-    <p>
-        Below is a simulated data grid that mimics real-world backend delays: filtering takes 2 seconds, and sorting takes 7 seconds. 
-        When user input triggers overlapping requests, you’ll see how sync strategies help preserve consistency.
-    </p>
-    <ul>
-        <li><a href="grid-nofix"><strong>No Sync</strong></a> – <em>Observe inconsistent results due to race conditions</em></li>
-        <li><a href="grid-use-last"><strong>Use Last</strong></a> – <em>Ensures only the latest request completes</em></li>
-        <li><a href="grid-de-bounce"><strong>Debounce</strong></a> – <em>Waits for quiet time before executing</em></li>
-    </ul>
-</section>
-@code {
 
-}
+<section>
+    <header>
+        <h2>Async Coalescing Strategies in .NET</h2>
+        <p>
+            Async calls often overlap on the same logical resource. Without synchronization, this causes duplicated work,
+            out-of-order responses, race conditions, and unnecessary CPU/IO usage.
+        </p>
+        <p>
+            FlowSync demonstrates practical coalescing patterns that control how concurrent calls are merged, canceled,
+            queued, delayed, or batched.
+        </p>
+    </header>
+
+    <article>
+        <h3>Learning Resources</h3>
+        <p>
+            Start with the video for a quick overview, then use the Medium article for pattern-by-pattern details.
+        </p>
+
+        <ul>
+            <li>
+                @if (System.Diagnostics.Debugger.IsAttached)
+                {
+                    <p>
+                        YouTube embed is hidden while debugging to avoid third-party JavaScript noise in Visual Studio.
+                        <a href="https://www.youtube.com/watch?v=wwSU83Qpjts" target="_blank" rel="noopener noreferrer">Open video on YouTube</a>.
+                    </p>
+                }
+                else
+                {
+                    <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/wwSU83Qpjts?si=lGB7G2k-2Xg1qo7D" title="FlowSync overview on YouTube" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                }
+            </li>
+
+            <li>
+                <a href="https://itnext.io/5-common-async-coalescing-patterns-db7b1cac1507?source=friends_link&sk=7d181a06c15d308485cbf6c205955907" target="_blank" rel="noopener noreferrer">
+                    Medium Article: 5 Common Async Coalescing Patterns
+                </a>
+            </li>
+        </ul>
+    </article>
+
+    <article>
+        <h3>Strategy Playground</h3>
+        <p>
+            Each strategy defines a different rule for what should happen when multiple requests overlap in the same group.
+        </p>
+        <ul>
+            <li><a href="demo/NoSync"><strong>No Coalescing</strong></a> - Baseline behavior for comparison.</li>
+            <li><a href="demo/UseFirst"><strong>Use First</strong></a> - First caller runs; later callers reuse the same result.</li>
+            <li><a href="demo/UseLast"><strong>Use Last</strong></a> - New caller replaces older in-flight work.</li>
+            <li><a href="demo/Queue"><strong>Queue (with Use Last)</strong></a> - Calls run one at a time in sequence.</li>
+            <li><a href="demo/DeBounce"><strong>Use Last with Debounce</strong></a> - Wait for a quiet window before running.</li>
+            <li><a href="demo/Agg"><strong>Aggregate</strong></a> - Buffer inputs and process them as batches.</li>
+        </ul>
+    </article>
+
+    <article>
+        <h3>Request/Response Timeline Demo</h3>
+        <p>
+            This timeline view shows how each strategy handles overlapping requests from multiple actors.
+            You can see requests moving to the server, responses returning, and server states changing from idle to pending, processing, canceled, or completed.
+            It makes race conditions, coalescing, and result redirection visible so strategy differences are easy to compare.
+        </p>
+        <ReqRespCatalog></ReqRespCatalog>
+        <h4>Icon Legend</h4>
+        <ul>
+            <li>Actor emoji (for example: &#x1F431;, &#x1F436;, &#x1F430;) - client/caller that emits requests.</li>
+            <li>Red dot near actor - actor is currently active (sending a request).</li>
+            <li>&#x1F5A5; - backend/server side of the flow.</li>
+            <li>Blue right arrow - request is traveling from actor to server.</li>
+            <li>Green left arrow - response is traveling from server back to actor.</li>
+            <li><code>??</code> - value is not available yet.</li>
+            <li>&#x23F3; - request or response is pending.</li>
+            <li>&#x1F634; - server is idle.</li>
+            <li>&#x1F525; - server is processing.</li>
+            <li>&#x1F3C1; - server finished internal work.</li>
+            <li>&#x2705; - response completed normally for that request.</li>
+            <li>&#x274C; - request was canceled.</li>
+            <li>&#x1F500; - response was redirected/coalesced (result came from another request path).</li>
+            <li>&#x1F6AB; - request was rejected (used in scenarios where only one request is accepted).</li>
+            <li>Strikethrough server value - canceled while processing.</li>
+        </ul>
+    </article>
+
+    <article>
+        <h3>Realistic Data Grid Demo</h3>
+        <p>
+            This scenario simulates backend latency where filtering takes 2 seconds and sorting takes 7 seconds.
+            It shows how strategy selection affects consistency under rapid user input.
+        </p>
+        <ul>
+            <li><a href="grid-nofix"><strong>No Sync</strong></a> - Demonstrates stale or out-of-order grid states.</li>
+            <li><a href="grid-use-last"><strong>Use Last</strong></a> - Ensures only the most recent user intent completes.</li>
+            <li><a href="grid-de-bounce"><strong>Debounce</strong></a> - Reduces request churn while typing and filtering.</li>
+        </ul>
+    </article>
+</section>

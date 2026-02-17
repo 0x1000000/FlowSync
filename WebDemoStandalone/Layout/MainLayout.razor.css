@@ -17,7 +17,35 @@ main {
 .sidebar {
     flex: 0 0 auto;
     background: var(--background-1);
+    display: flex;
+    flex-direction: column;
     overflow: auto;
+}
+
+.nav-menu-box {
+    flex: 1 1 auto;
+}
+
+.sidebar-github-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 40px;
+    height: 40px;
+    margin: 0 0 8px 20px;
+    color: var(--text-main-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.sidebar-github-link svg {
+    width: 22px;
+    height: 22px;
+}
+
+.sidebar-github-link:hover {
+    color: var(--main-color);
 }
 
 .toggle-btn {
@@ -35,6 +63,13 @@ main {
 }
 
 @media (max-width: 1300px) {
+    .sidebar {
+        justify-content: space-between;
+        align-items: flex-start;
+        width: 52px;
+        overflow: hidden;
+    }
+
     .toggle-btn {
         display: initial;
     }
@@ -43,7 +78,36 @@ main {
         display: none;
     }
 
+    .collapsed .toggle-btn {
+        margin: 6px 0 0 6px;
+    }
+
+    .collapsed .sidebar-github-link {
+        justify-content: center;
+        gap: 0;
+        width: 40px;
+        margin: 0 0 8px 6px;
+    }
+
+    .collapsed .sidebar-github-link span {
+        display: none;
+    }
+
     .open main {
         display: none;
+    }
+
+    .open .sidebar {
+        width: auto;
+        align-items: stretch;
+        overflow: auto;
+    }
+
+    .open .toggle-btn {
+        margin: 20px 0 0 20px;
+    }
+
+    .open .sidebar-github-link {
+        margin: 0 0 20px 20px;
     }
 }

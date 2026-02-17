@@ -2,30 +2,53 @@
 
 FlowSync is a lightweight **async coalescing** library for .NET. It lets multiple callers share a single in-flight operation while choosing a **strategy** for how competing calls are handled.
 
-## Demo Site: https://0x1000000.github.io/FlowSync/
-## Video Intro: https://www.youtube.com/watch?v=wwSU83Qpjts
+## Demo Site: [FlowSync Demo](https://0x1000000.github.io/FlowSync/)
 
+## Video Intro: [YouTube Video](https://www.youtube.com/watch?v=wwSU83Qpjts)
 
-**Key Ideas**
+## Medium Article: [5 Common Async Coalescing Patterns](https://itnext.io/5-common-async-coalescing-patterns-db7b1cac1507?source=friends_link&sk=7d181a06c15d308485cbf6c205955907)
+
+## Key Ideas
+
 - Coalesce concurrent calls per `groupKey`.
 - Choose how to resolve contention: use-first, use-last, queue, debounce, or aggregate-and-batch.
 - Optional debouncing/buffering for bursty workloads.
 
-**Strategies**
+## Problem: Concurrent Async Stampede
+
+In modern applications, multiple asynchronous requests often target the same logical resource concurrently.
+
+Examples:
+
+- UI typing triggers multiple search requests
+- Multiple workflows request the same data
+- Distributed services request the same cache entry
+
+Without coordination, this leads to:
+
+- redundant execution
+- race conditions
+- stale or out-of-order results
+- wasted CPU and I/O
+
+## Strategies
+
 - `UseFirstCoalescingSyncStrategy<T>`: first caller runs, later callers join and observe the same result.
 - `UseLastCoalescingSyncStrategy<T>`: later callers replace earlier ones; earlier calls are canceled.
 - `QueueCoalescingSyncStrategy<T>`: callers are queued and executed sequentially (spooler-like).
 - `DeBounceCoalescingSyncStrategy<T>`: debounces rapid-fire calls into fewer executions.
 - `AggCoalescingSyncStrategy<T, TArg, TAcc>`: buffers incoming arguments for a time window, aggregates them into an accumulator, then runs one execution per batch. If new arguments arrive while a batch is running, they are collected for the next batch.
 
-**Install**
+## Install
+
 ```bash
 dotnet add package FlowSync
 ```
 
-**Usage (FlowSyncTask)**
+## Usage (FlowSyncTask)
 This variant is for methods that return `FlowSyncTask<T>` directly.  
 Each invocation enters a strategy-managed pipeline (grouped by `groupKey`), so overlapping calls may be shared, replaced, queued, or canceled depending on strategy rules.
+
 ```csharp
 using FlowSync;
 
@@ -59,12 +82,14 @@ public void CancelFetch(int id)
     Strategy.Cancel(id);
 }
 ```
-**Remarks**
+
+### Remarks
+
 1. `FlowSyncTask.GetCancellationContext()` returns a combined cancellation context:
 `CancellationToken` is canceled for either external explicit cancellation or strategy-enforced cancellation, and `IsCancelledLocally` is `true` only for strategy-enforced cancellation (for example in overlapping `UseLast` calls).
 2. `CoalesceInGroupUsing(...)` returns a lazy awaiter. The underlying work does not start until it is awaited, `Start()` is called, or `StartAsTask()` is called.
 
-**Usage (wrap a regular Task)**
+## Usage (wrap a regular Task)
 Use this when your existing code already returns `Task<T>` and you do not want to rewrite method signatures.  
 `FlowSyncTask.Create(...)` adapts the regular task into the same coalescing pipeline, so strategy behavior is identical to the `FlowSyncTask<T>` approach.  
 This is usually the easiest migration path for existing codebases.
@@ -90,7 +115,7 @@ static async Task<int> WorkAsync(int id, CancellationToken ct)
 }
 ```
 
-**Usage (aggregate multiple calls into batches)**
+## Usage (aggregate multiple calls into batches)
 This mode collects many small inputs into batches and executes fewer larger operations.  
 Arguments are buffered for `bufferTime`, merged into an accumulator, and processed as one run per group.  
 If new calls arrive while a batch is running, they are accumulated for the next batch cycle.
@@ -124,7 +149,8 @@ public Task<int> CallerAsync(int id)
 }
 ```
 
-**Agg remarks**
+### Agg Remarks
+
 1. `seedFactory` signature is `Func<TAcc?, int, TAcc>`:
 the first argument is the previous accumulator (or `null` for the first batch), and the second argument is the batch index.
 2. Use `seedFactory: (acc, _) => acc ?? ...` for rolling accumulation across batches.
