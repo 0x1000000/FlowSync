@@ -351,7 +351,35 @@ main[b-ze7zunoz9s] {
 .sidebar[b-ze7zunoz9s] {
     flex: 0 0 auto;
     background: var(--background-1);
+    display: flex;
+    flex-direction: column;
     overflow: auto;
+}
+
+.nav-menu-box[b-ze7zunoz9s] {
+    flex: 1 1 auto;
+}
+
+.sidebar-github-link[b-ze7zunoz9s] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 40px;
+    height: 40px;
+    margin: 0 0 8px 20px;
+    color: var(--text-main-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.sidebar-github-link svg[b-ze7zunoz9s] {
+    width: 22px;
+    height: 22px;
+}
+
+.sidebar-github-link:hover[b-ze7zunoz9s] {
+    color: var(--main-color);
 }
 
 .toggle-btn[b-ze7zunoz9s] {
@@ -369,6 +397,13 @@ main[b-ze7zunoz9s] {
 }
 
 @media (max-width: 1300px) {
+    .sidebar[b-ze7zunoz9s] {
+        justify-content: space-between;
+        align-items: flex-start;
+        width: 52px;
+        overflow: hidden;
+    }
+
     .toggle-btn[b-ze7zunoz9s] {
         display: initial;
     }
@@ -377,8 +412,37 @@ main[b-ze7zunoz9s] {
         display: none;
     }
 
+    .collapsed .toggle-btn[b-ze7zunoz9s] {
+        margin: 6px 0 0 6px;
+    }
+
+    .collapsed .sidebar-github-link[b-ze7zunoz9s] {
+        justify-content: center;
+        gap: 0;
+        width: 40px;
+        margin: 0 0 8px 6px;
+    }
+
+    .collapsed .sidebar-github-link span[b-ze7zunoz9s] {
+        display: none;
+    }
+
     .open main[b-ze7zunoz9s] {
         display: none;
+    }
+
+    .open .sidebar[b-ze7zunoz9s] {
+        width: auto;
+        align-items: stretch;
+        overflow: auto;
+    }
+
+    .open .toggle-btn[b-ze7zunoz9s] {
+        margin: 20px 0 0 20px;
+    }
+
+    .open .sidebar-github-link[b-ze7zunoz9s] {
+        margin: 0 0 20px 20px;
     }
 }
 /* /Layout/NavMenu.razor.rz.scp.css */

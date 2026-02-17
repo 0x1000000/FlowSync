@@ -1,12 +1,12 @@
 self.assetsManifest = {
-  "version": "5L3+38Bo",
+  "version": "jEMSonl0",
   "assets": [
     {
-      "hash": "sha256-r26aylny4SCTVXhGRML4NZ/fQymkrd8PannewFc4Klw=",
+      "hash": "sha256-+kPmT3XcBmuaeWqjQiTKnIwRl+eAf8m6p0SV9r7AC5g=",
       "url": "WebDemoStandalone.styles.css"
     },
     {
-      "hash": "sha256-QBx29BHgrN4WntnFDOlghVeAdkikZEXD6EkXye9R+ZI=",
+      "hash": "sha256-LCD6jOVELmY4PAQU+T7mmhprIRa+7Wo31j6aV1uVv60=",
       "url": "_framework/FlowSync.wasm"
     },
     {
@@ -102,7 +102,7 @@ self.assetsManifest = {
       "url": "_framework/System.Net.Primitives.wasm"
     },
     {
-      "hash": "sha256-yyHAlDesqli3LO0Ovdtv58Xgh/Uc7BqPlrB3eoaHOk0=",
+      "hash": "sha256-LuhJRjp8NWS3ARossIOb77vJD17kuETP33Q1eK91IAA=",
       "url": "_framework/System.Private.CoreLib.wasm"
     },
     {
@@ -118,7 +118,7 @@ self.assetsManifest = {
       "url": "_framework/System.Runtime.InteropServices.wasm"
     },
     {
-      "hash": "sha256-fNi/ocDfFEti2gUEv2RlioTdHx9jFPtPpF4YQrqyFMg=",
+      "hash": "sha256-bPRC3DEWbvIc72y6SoRRgVWtQCOCrxYWrxjOLTaW3sY=",
       "url": "_framework/System.Runtime.wasm"
     },
     {
@@ -142,11 +142,11 @@ self.assetsManifest = {
       "url": "_framework/System.Threading.wasm"
     },
     {
-      "hash": "sha256-GTuVoXeBQjsY9rzUfYYEkroH+BQkRhxVf7dh2LAqX7U=",
+      "hash": "sha256-4LpkBmPEqeHkIJX8HwhRRQ7eQsTi3WRvVc1voc5Dn0w=",
       "url": "_framework/WebDemoStandalone.wasm"
     },
     {
-      "hash": "sha256-Yh27TvjJUQOCcWF4c37zVxDx0xWg0x1jvyynZ29BXpA=",
+      "hash": "sha256-Lmq9FDLaIKope1BzsexUkN0WPWt3+pU803LvBVnv8pQ=",
       "url": "_framework/blazor.boot.json"
     },
     {
@@ -182,11 +182,11 @@ self.assetsManifest = {
       "url": "_framework/icudt_no_CJK.dat"
     },
     {
-      "hash": "sha256-v80vu7Cc4i2kF9wokHOdP+TGzujhmIO8Wf7fQ9Vw2Y0=",
+      "hash": "sha256-8ZAjByE1P5lDVorwLShjuGPMDDCTMxb5F1cnCkyH8W0=",
       "url": "css/app.css"
     },
     {
-      "hash": "sha256-x8EOz3FcZ/+rwewnk01bNwVt1/rNeYJbgzeBnCx5nps=",
+      "hash": "sha256-MnxFjhXBYhXF87rVaXwMuyhK7DAKXACENwuemBJbFjk=",
       "url": "index.html"
     },
     {
