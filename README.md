@@ -8,11 +8,62 @@ FlowSync is a lightweight **async coalescing** library for .NET. It lets multipl
 
 ## Medium Article: [5 Common Async Coalescing Patterns](https://itnext.io/5-common-async-coalescing-patterns-db7b1cac1507?source=friends_link&sk=7d181a06c15d308485cbf6c205955907)
 
-## Key Ideas
+## Contents
+
+- [Core Idea](#core-idea)
+- [Quick Example](#quick-example)
+- [Problem: Concurrent Async Stampede](#problem-concurrent-async-stampede)
+- [Strategies](#strategies)
+- [Install](#install)
+- [Usage (FlowSyncTask)](#usage-flowsynctask)
+- [Remarks](#remarks)
+- [Usage (wrap a regular Task)](#usage-wrap-a-regular-task)
+- [Usage (aggregate multiple calls into batches)](#usage-aggregate-multiple-calls-into-batches)
+- [Agg Remarks](#agg-remarks)
+- [Cookbook](#cookbook)
+- [Recipe 1: Cancel stale heavy SQL query (`UseLast`)](#recipe-1-cancel-stale-heavy-sql-query-uselast)
+- [Recipe 2: Batch `GetUserInfo` for 500ms and share one dictionary (`Agg`)](#recipe-2-batch-getuserinfo-for-500ms-and-share-one-dictionary-agg)
+
+## Core Idea
+
+Instead of manually wiring `TaskCompletionSource`, `CancellationTokenSource`, queues, timers, and locking logic for every use case, FlowSync separates:
+
+- Business logic (what the operation does)
+- Concurrency semantics (how overlapping calls behave)
+
+This separation is the key design principle of the library.
+
+In practice:
 
 - Coalesce concurrent calls per `groupKey`.
 - Choose how to resolve contention: use-first, use-last, queue, debounce, or aggregate-and-batch.
 - Optional debouncing/buffering for bursty workloads.
+- Keep methods as normal async operations that return `FlowSyncTask<T>`.
+- The method itself contains no synchronization logic; it simply respects the cancellation context provided by FlowSync.
+
+Then, at the call site, you choose the strategy.
+
+## Quick Example
+
+```csharp
+using FlowSync;
+
+static readonly IFlowSyncStrategy<string> Strategy = new UseLastCoalescingSyncStrategy<string>();
+
+public async FlowSyncTask<string> SearchCoreAsync(string query)
+{
+    var ctx = await FlowSyncTask.GetCancellationContext();
+    await Task.Delay(150, ctx.CancellationToken); // real I/O goes here; old irrelevant requests are canceled.
+    return $"result:{query}";
+}
+
+public async Task<string> SearchAsync(string query) =>
+    await this.SearchCoreAsync(query)
+        .CoalesceInGroupUsing(Strategy, groupKey: "search");
+```
+
+`SearchCoreAsync` holds business logic. `CoalesceInGroupUsing(...)` applies concurrency semantics.
+`FlowSyncTask` is lazy: the coalesced operation starts when you `await` it (or call `Start()` / `StartAsTask()`).
 
 ## Problem: Concurrent Async Stampede
 
@@ -33,11 +84,23 @@ Without coordination, this leads to:
 
 ## Strategies
 
+Each coalescing pattern is implemented as a strategy. All strategies follow the same abstraction but differ in semantics:
+
+- Should previous calls be ignored?
+- Should they be canceled?
+- Should execution be delayed?
+- Should calls be queued?
+- Should inputs be aggregated?
+
+FlowSync answers these questions with five interchangeable strategies:
+
 - `UseFirstCoalescingSyncStrategy<T>`: first caller runs, later callers join and observe the same result.
 - `UseLastCoalescingSyncStrategy<T>`: later callers replace earlier ones; earlier calls are canceled.
 - `QueueCoalescingSyncStrategy<T>`: callers are queued and executed sequentially (spooler-like).
 - `DeBounceCoalescingSyncStrategy<T>`: debounces rapid-fire calls into fewer executions.
 - `AggCoalescingSyncStrategy<T, TArg, TAcc>`: buffers incoming arguments for a time window, aggregates them into an accumulator, then runs one execution per batch. If new arguments arrive while a batch is running, they are collected for the next batch.
+
+The operation does not change. Only the synchronization policy changes (aggregation is a small exception). This makes concurrency behavior explicit and configurable instead of implicit and scattered across code.
 
 ## Install
 
@@ -156,3 +219,81 @@ the first argument is the previous accumulator (or `null` for the first batch), 
 2. Use `seedFactory: (acc, _) => acc ?? ...` for rolling accumulation across batches.
 3. Use `seedFactory: (_, _) => ...` to reset and start a fresh accumulator for each next batch.
 4. A new batch appears when new overlapping requests arrive after the current buffer window has already been consumed (typically while the current batch is already running). For a given `groupKey`, batches are processed sequentially in one logical pipeline (no parallel batch execution inside the same group).
+
+## Cookbook
+
+### Recipe 1: Cancel stale heavy SQL query (`UseLast`)
+
+When the same logical request is triggered repeatedly, keep only the latest call and cancel the older one.
+
+```csharp
+using FlowSync;
+using Microsoft.Data.SqlClient;
+
+static readonly IFlowSyncStrategy<int> HeavyQueryStrategy =
+    new UseLastCoalescingSyncStrategy<int>();
+
+public async FlowSyncTask<int> RunHeavyQueryCoreAsync(string connectionString)
+{
+    var ctx = await FlowSyncTask.GetCancellationContext();
+
+    await using var conn = new SqlConnection(connectionString);
+    await conn.OpenAsync(ctx.CancellationToken);
+
+    await using var cmd = conn.CreateCommand();
+    // Simulate a heavy SQL operation.
+    cmd.CommandText = "WAITFOR DELAY '00:01:00'; SELECT 1;";
+    return (int)(await cmd.ExecuteScalarAsync(ctx.CancellationToken) ?? 0);
+}
+
+public async Task<int> RunHeavyQueryAsync(string connectionString) =>
+    await RunHeavyQueryCoreAsync(connectionString)
+        .CoalesceInGroupUsing(HeavyQueryStrategy, groupKey: "heavy-query");
+```
+
+For the same `groupKey`, a newer call cancels the previous in-flight one.
+
+### Recipe 2: Batch `GetUserInfo` for 500ms and share one dictionary (`Agg`)
+
+Collect requested user IDs for 500ms, run one EF query, return one shared dictionary to all callers in that batch.
+
+```csharp
+using FlowSync;
+using Microsoft.EntityFrameworkCore;
+
+public sealed record UserInfo(int Id, string Name, string Email);
+
+static readonly IFlowSyncAggStrategy<IReadOnlyDictionary<int, UserInfo>, int, HashSet<int>> GetUsersAggStrategy =
+    new AggCoalescingSyncStrategy<IReadOnlyDictionary<int, UserInfo>, int, HashSet<int>>(
+        seedFactory: (_, _) => new HashSet<int>(),
+        aggregator: (acc, userId) =>
+        {
+            acc.Add(userId);
+            return acc;
+        },
+        bufferTime: TimeSpan.FromMilliseconds(500)
+    );
+
+static readonly FlowSyncAggTask<IReadOnlyDictionary<int, UserInfo>, HashSet<int>> GetUsersBatchTask =
+    FlowSyncAggTask.Create<IReadOnlyDictionary<int, UserInfo>, HashSet<int>>(async (ids, ct) =>
+    {
+        await using var db = new AppDbContext();
+
+        var users = await db.Users
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new UserInfo(u.Id, u.Name, u.Email))
+            .ToListAsync(ct);
+
+        return users.ToDictionary(u => u.Id, u => u);
+    });
+
+public async Task<UserInfo?> GetUserInfoAsync(int userId)
+{
+    var shared = await GetUsersBatchTask
+        .CoalesceInGroupUsing(GetUsersAggStrategy, userId, groupKey: "users");
+
+    return shared.TryGetValue(userId, out var user) ? user : null;
+}
+```
+
+All callers in the same batch receive the same dictionary instance and read their own entry by `userId`.
