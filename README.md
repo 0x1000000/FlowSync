@@ -22,7 +22,7 @@ FlowSync is a lightweight **async coalescing** library for .NET. It lets multipl
 - [Agg Remarks](#agg-remarks)
 - [Cookbook](#cookbook)
 - [Recipe 1: Cancel stale heavy SQL query (`UseLast`)](#recipe-1-cancel-stale-heavy-sql-query-uselast)
-- [Recipe 2: Batch `GetUserInfo` for 500ms and share one dictionary (`Agg`)](#recipe-2-batch-getuserinfo-for-500ms-and-share-one-dictionary-agg)
+- [Recipe 2: Combine `GetUserInfo` requests into one batch (single I/O operation), then distribute results to callers (`Agg`)](#recipe-2-combine-getuserinfo-requests-into-one-batch-then-distribute-results-to-callers-agg)
 
 ## Core Idea
 
@@ -109,6 +109,7 @@ dotnet add package FlowSync
 ```
 
 ## Usage (FlowSyncTask)
+
 This variant is for methods that return `FlowSyncTask<T>` directly.  
 Each invocation enters a strategy-managed pipeline (grouped by `groupKey`), so overlapping calls may be shared, replaced, queued, or canceled depending on strategy rules.
 
@@ -153,6 +154,7 @@ public void CancelFetch(int id)
 2. `CoalesceInGroupUsing(...)` returns a lazy awaiter. The underlying work does not start until it is awaited, `Start()` is called, or `StartAsTask()` is called.
 
 ## Usage (wrap a regular Task)
+
 Use this when your existing code already returns `Task<T>` and you do not want to rewrite method signatures.  
 `FlowSyncTask.Create(...)` adapts the regular task into the same coalescing pipeline, so strategy behavior is identical to the `FlowSyncTask<T>` approach.  
 This is usually the easiest migration path for existing codebases.
@@ -179,6 +181,7 @@ static async Task<int> WorkAsync(int id, CancellationToken ct)
 ```
 
 ## Usage (aggregate multiple calls into batches)
+
 This mode collects many small inputs into batches and executes fewer larger operations.  
 Arguments are buffered for `bufferTime`, merged into an accumulator, and processed as one run per group.  
 If new calls arrive while a batch is running, they are accumulated for the next batch cycle.
@@ -253,9 +256,10 @@ public async Task<int> RunHeavyQueryAsync(string connectionString) =>
 
 For the same `groupKey`, a newer call cancels the previous in-flight one.
 
-### Recipe 2: Batch `GetUserInfo` for 500ms and share one dictionary (`Agg`)
+### Recipe 2: Combine `GetUserInfo` requests into one batch, then distribute results to callers (`Agg`)
 
-Collect requested user IDs for 500ms, run one EF query, return one shared dictionary to all callers in that batch.
+Collect requested user IDs for 500ms, combine them into one batch, run one EF query, then distribute the shared result dictionary to all callers in that batch.
+This improves performance under bursty traffic: instead of many small concurrent DB queries, the strategy collapses them into a single query, significantly reducing database and system load.
 
 ```csharp
 using FlowSync;
@@ -297,3 +301,5 @@ public async Task<UserInfo?> GetUserInfoAsync(int userId)
 ```
 
 All callers in the same batch receive the same dictionary instance and read their own entry by `userId`.
+The key benefit is query coalescing: one batched query per window instead of N per-caller queries.
+This improvement is transparent for callers and does not affect their business logic.
