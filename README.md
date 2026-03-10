@@ -1,47 +1,21 @@
 # FlowSync
 
-FlowSync is a lightweight **async coalescing** library for .NET. It lets multiple callers share a single in-flight operation while choosing a **strategy** for how competing calls are handled.
+FlowSync is a lightweight async coalescing library for .NET.
 
-## Demo Site: [FlowSync Demo](https://0x1000000.github.io/FlowSync/)
+It lets multiple callers share one in-flight operation and choose what should happen when calls overlap: keep the first call, keep the latest call, queue them, debounce them, or batch them.
 
-## Video Intro: [YouTube Video](https://www.youtube.com/watch?v=wwSU83Qpjts)
+## Resources
 
-## Medium Article: [5 Common Async Coalescing Patterns](https://itnext.io/5-common-async-coalescing-patterns-db7b1cac1507?source=friends_link&sk=7d181a06c15d308485cbf6c205955907)
+- Demo site: [FlowSync Demo](https://0x1000000.github.io/FlowSync/)
+- Video intro: [YouTube Video](https://www.youtube.com/watch?v=wwSU83Qpjts)
+- Article: [5 Common Async Coalescing Patterns](https://itnext.io/5-common-async-coalescing-patterns-db7b1cac1507?source=friends_link&sk=7d181a06c15d308485cbf6c205955907)
 
-## Contents
+## What You Get
 
-- [Core Idea](#core-idea)
-- [Quick Example](#quick-example)
-- [Problem: Concurrent Async Stampede](#problem-concurrent-async-stampede)
-- [Strategies](#strategies)
-- [Install](#install)
-- [Usage (FlowSyncTask)](#usage-flowsynctask)
-- [Remarks](#remarks)
-- [Usage (wrap a regular Task)](#usage-wrap-a-regular-task)
-- [Usage (aggregate multiple calls into batches)](#usage-aggregate-multiple-calls-into-batches)
-- [Agg Remarks](#agg-remarks)
-- [Cookbook](#cookbook)
-- [Recipe 1: Cancel stale heavy SQL query (`UseLast`)](#recipe-1-cancel-stale-heavy-sql-query-uselast)
-- [Recipe 2: Combine `GetUserInfo` requests into one batch (single I/O operation), then distribute results to callers (`Agg`)](#recipe-2-combine-getuserinfo-requests-into-one-batch-then-distribute-results-to-callers-agg)
-
-## Core Idea
-
-Instead of manually wiring `TaskCompletionSource`, `CancellationTokenSource`, queues, timers, and locking logic for every use case, FlowSync separates:
-
-- Business logic (what the operation does)
-- Concurrency semantics (how overlapping calls behave)
-
-This separation is the key design principle of the library.
-
-In practice:
-
-- Coalesce concurrent calls per `groupKey`.
-- Choose how to resolve contention: use-first, use-last, queue, debounce, or aggregate-and-batch.
-- Optional debouncing/buffering for bursty workloads.
-- Keep methods as normal async operations that return `FlowSyncTask<T>`.
-- The method itself contains no synchronization logic; it simply respects the cancellation context provided by FlowSync.
-
-Then, at the call site, you choose the strategy.
+- Keep business logic separate from concurrency control
+- Reuse the same operation with different overlap strategies
+- Cancel stale work when newer calls matter more
+- Batch bursty requests into fewer I/O operations
 
 ## Quick Example
 
@@ -53,7 +27,7 @@ static readonly IFlowSyncStrategy<string> Strategy = new UseLastCoalescingSyncSt
 public async FlowSyncTask<string> SearchCoreAsync(string query)
 {
     var ctx = await FlowSyncTask.GetCancellationContext();
-    await Task.Delay(150, ctx.CancellationToken); // real I/O goes here; old irrelevant requests are canceled.
+    await Task.Delay(150, ctx.CancellationToken); // real I/O goes here
     return $"result:{query}";
 }
 
@@ -62,45 +36,72 @@ public async Task<string> SearchAsync(string query) =>
         .CoalesceInGroupUsing(Strategy, groupKey: "search");
 ```
 
-`SearchCoreAsync` holds business logic. `CoalesceInGroupUsing(...)` applies concurrency semantics.
-`FlowSyncTask` is lazy: the coalesced operation starts when you `await` it (or call `Start()` / `StartAsTask()`).
+`SearchCoreAsync` contains the business logic. `CoalesceInGroupUsing(...)` applies the concurrency behavior.
 
-## Problem: Concurrent Async Stampede
+`FlowSyncTask` is lazy, so the coalesced operation starts only when you `await` it or call `Start()` or `StartAsTask()`.
 
-In modern applications, multiple asynchronous requests often target the same logical resource concurrently.
+## Contents
 
-Examples:
+- [Core Idea](#core-idea)
+- [Why It Helps](#why-it-helps)
+- [Strategies](#strategies)
+- [Install](#install)
+- [Usage with `FlowSyncTask`](#usage-with-flowsynctask)
+- [Usage with Existing `Task<T>` Code](#usage-with-existing-taskt-code)
+- [Batching Multiple Calls](#batching-multiple-calls)
+- [Cookbook](#cookbook)
 
-- UI typing triggers multiple search requests
-- Multiple workflows request the same data
-- Distributed services request the same cache entry
+## Core Idea
 
-Without coordination, this leads to:
+Without FlowSync, async coordination often ends up mixed into business code through `TaskCompletionSource`, `CancellationTokenSource`, timers, queues, and locks.
 
-- redundant execution
-- race conditions
-- stale or out-of-order results
-- wasted CPU and I/O
+FlowSync separates two concerns:
+
+- Business logic: what the operation does
+- Concurrency semantics: what should happen when calls overlap
+
+In practice, that means:
+
+- Concurrent calls are coalesced per `groupKey`
+- You choose a strategy for contention resolution
+- Debouncing and batching are available for bursty workloads
+- Your method stays close to a normal async method
+- The method itself does not need to manage synchronization logic
+
+The operation stays focused on its real work. The call site decides how overlapping calls behave.
+
+## Why It Helps
+
+Modern applications often issue multiple async requests for the same logical resource at the same time.
+
+Common examples:
+
+- A search box triggers requests on every keystroke
+- Several workflows ask for the same data concurrently
+- Multiple services request the same cache entry
+
+Without coordination, that usually leads to:
+
+- Redundant execution
+- Stale or out-of-order results
+- Race conditions
+- Wasted CPU and I/O
 
 ## Strategies
 
-Each coalescing pattern is implemented as a strategy. All strategies follow the same abstraction but differ in semantics:
+Each coalescing pattern is implemented as a strategy. The abstraction stays the same, but the overlap behavior changes.
 
-- Should previous calls be ignored?
-- Should they be canceled?
-- Should execution be delayed?
-- Should calls be queued?
-- Should inputs be aggregated?
+These are explicit policy choices. The operation stays focused on business logic while the strategy defines how contention is handled.
 
-FlowSync answers these questions with five interchangeable strategies:
+FlowSync provides five interchangeable strategies:
 
-- `UseFirstCoalescingSyncStrategy<T>`: first caller runs, later callers join and observe the same result.
-- `UseLastCoalescingSyncStrategy<T>`: later callers replace earlier ones; earlier calls are canceled.
-- `QueueCoalescingSyncStrategy<T>`: callers are queued and executed sequentially (spooler-like).
-- `DeBounceCoalescingSyncStrategy<T>`: debounces rapid-fire calls into fewer executions.
-- `AggCoalescingSyncStrategy<T, TArg, TAcc>`: buffers incoming arguments for a time window, aggregates them into an accumulator, then runs one execution per batch. If new arguments arrive while a batch is running, they are collected for the next batch.
+- `UseFirstCoalescingSyncStrategy<T>`: the first caller runs, and later callers join the same result
+- `UseLastCoalescingSyncStrategy<T>`: newer callers replace older ones, and older calls are canceled
+- `QueueCoalescingSyncStrategy<T>`: callers are queued and executed sequentially
+- `DeBounceCoalescingSyncStrategy<T>`: rapid-fire calls are collapsed into fewer executions
+- `AggCoalescingSyncStrategy<T, TArg, TAcc>`: inputs are buffered, aggregated into an accumulator, and processed as a batch
 
-The operation does not change. Only the synchronization policy changes (aggregation is a small exception). This makes concurrency behavior explicit and configurable instead of implicit and scattered across code.
+Most of the time, the operation itself does not change. You swap the synchronization policy instead of rewriting the method.
 
 ## Install
 
@@ -108,10 +109,11 @@ The operation does not change. Only the synchronization policy changes (aggregat
 dotnet add package FlowSync
 ```
 
-## Usage (FlowSyncTask)
+## Usage with `FlowSyncTask`
 
-This variant is for methods that return `FlowSyncTask<T>` directly.  
-Each invocation enters a strategy-managed pipeline (grouped by `groupKey`), so overlapping calls may be shared, replaced, queued, or canceled depending on strategy rules.
+Use this form when your method returns `FlowSyncTask<T>` directly.
+
+Each invocation enters a strategy-managed pipeline for its `groupKey`, so overlapping calls may be shared, replaced, queued, or canceled depending on the chosen strategy.
 
 ```csharp
 using FlowSync;
@@ -119,25 +121,21 @@ using FlowSync;
 // Strategy keeps per-group coalescing state across calls, so share one instance.
 static readonly IFlowSyncStrategy<int> Strategy = new UseLastCoalescingSyncStrategy<int>();
 
-// FlowSyncTask<T> is a custom awaitable type (not Task<T> or ValueTask<T>).
+// FlowSyncTask<T> is a custom awaitable type, not Task<T> or ValueTask<T>.
 public async FlowSyncTask<int> FetchAsync(int id)
 {
     var ctx = await FlowSyncTask.GetCancellationContext();
+
     // ctx.CancellationToken covers both:
     // 1) explicit external cancellation
-    // 2) strategy-enforced cancellation due to coalescing/overlap
+    // 2) strategy-enforced cancellation due to overlap
     // ctx.IsCancelledLocally is true only for case (2).
-    
-    // Do work here and respect ctx.CancellationToken if needed.
     await Task.Delay(Random.Shared.Next(50, 501), ctx.CancellationToken);
     return id + 42;
 }
 
 public async Task<int> CallerAsync(int id)
 {
-    // CallerAsync can be invoked concurrently (for example from different threads).
-    // For the same groupKey, each call awaits strategy resolution and completes when
-    // the coalesced pipeline finishes (or is canceled); a given invocation may never start its own FetchAsync execution.
     return await FetchAsync(id).CoalesceInGroupUsing(Strategy, groupKey: id);
 }
 
@@ -147,17 +145,16 @@ public void CancelFetch(int id)
 }
 ```
 
-### Remarks
+What to remember:
 
-1. `FlowSyncTask.GetCancellationContext()` returns a combined cancellation context:
-`CancellationToken` is canceled for either external explicit cancellation or strategy-enforced cancellation, and `IsCancelledLocally` is `true` only for strategy-enforced cancellation (for example in overlapping `UseLast` calls).
-2. `CoalesceInGroupUsing(...)` returns a lazy awaiter. The underlying work does not start until it is awaited, `Start()` is called, or `StartAsTask()` is called.
+1. `FlowSyncTask.GetCancellationContext()` returns a combined cancellation context. `CancellationToken` is canceled for either external cancellation or strategy-enforced cancellation, while `IsCancelledLocally` is `true` only for strategy-enforced cancellation.
+2. `CoalesceInGroupUsing(...)` returns a lazy awaiter. Work starts only when it is awaited or explicitly started.
 
-## Usage (wrap a regular Task)
+## Usage with Existing `Task<T>` Code
 
-Use this when your existing code already returns `Task<T>` and you do not want to rewrite method signatures.  
-`FlowSyncTask.Create(...)` adapts the regular task into the same coalescing pipeline, so strategy behavior is identical to the `FlowSyncTask<T>` approach.  
-This is usually the easiest migration path for existing codebases.
+Use this when your code already returns `Task<T>` and you do not want to change method signatures yet.
+
+`FlowSyncTask.Create(...)` adapts the regular task into the same coalescing pipeline, so the behavior matches the `FlowSyncTask<T>` approach.
 
 ```csharp
 using FlowSync;
@@ -180,11 +177,13 @@ static async Task<int> WorkAsync(int id, CancellationToken ct)
 }
 ```
 
-## Usage (aggregate multiple calls into batches)
+This is usually the simplest migration path for an existing codebase.
 
-This mode collects many small inputs into batches and executes fewer larger operations.  
-Arguments are buffered for `bufferTime`, merged into an accumulator, and processed as one run per group.  
-If new calls arrive while a batch is running, they are accumulated for the next batch cycle.
+## Batching Multiple Calls
+
+Use the aggregation strategy when many small requests should be combined into fewer larger executions.
+
+Arguments are buffered for `bufferTime`, merged into an accumulator, and processed as one run per group. If new calls arrive while a batch is already running, they are collected for the next batch.
 
 ```csharp
 using FlowSync;
@@ -209,23 +208,20 @@ static readonly FlowSyncAggTask<int, List<int>> BatchedWork =
 
 public Task<int> CallerAsync(int id)
 {
-    // Calls made within the buffer window share one aggregated execution.
-    // Calls arriving while execution is in progress are aggregated into the next batch.
     return BatchedWork.CoalesceInGroupUsing(AggStrategy, id, groupKey: "orders").StartAsTask();
 }
 ```
 
-### Agg Remarks
+What to remember:
 
-1. `seedFactory` signature is `Func<TAcc?, int, TAcc>`:
-the first argument is the previous accumulator (or `null` for the first batch), and the second argument is the batch index.
+1. `seedFactory` has the signature `Func<TAcc?, int, TAcc>`. The first argument is the previous accumulator or `null`, and the second argument is the batch index.
 2. Use `seedFactory: (acc, _) => acc ?? ...` for rolling accumulation across batches.
-3. Use `seedFactory: (_, _) => ...` to reset and start a fresh accumulator for each next batch.
-4. A new batch appears when new overlapping requests arrive after the current buffer window has already been consumed (typically while the current batch is already running). For a given `groupKey`, batches are processed sequentially in one logical pipeline (no parallel batch execution inside the same group).
+3. Use `seedFactory: (_, _) => ...` to reset the accumulator for each batch.
+4. For a given `groupKey`, batches are processed sequentially in one logical pipeline. Batches in the same group do not run in parallel.
 
 ## Cookbook
 
-### Recipe 1: Cancel stale heavy SQL query (`UseLast`)
+### Recipe 1: Cancel Stale SQL Work with `UseLast`
 
 When the same logical request is triggered repeatedly, keep only the latest call and cancel the older one.
 
@@ -254,12 +250,13 @@ public async Task<int> RunHeavyQueryAsync(string connectionString) =>
         .CoalesceInGroupUsing(HeavyQueryStrategy, groupKey: "heavy-query");
 ```
 
-For the same `groupKey`, a newer call cancels the previous in-flight one.
+For the same `groupKey`, a newer call cancels the previous in-flight execution.
 
-### Recipe 2: Combine `GetUserInfo` requests into one batch, then distribute results to callers (`Agg`)
+### Recipe 2: Batch `GetUserInfo` Requests with `Agg`
 
-Collect requested user IDs for 500ms, combine them into one batch, run one EF query, then distribute the shared result dictionary to all callers in that batch.
-This improves performance under bursty traffic: instead of many small concurrent DB queries, the strategy collapses them into a single query, significantly reducing database and system load.
+Collect user IDs for 500ms, run one EF query, then let each caller read its own result from the shared dictionary.
+
+This is useful under bursty traffic because it replaces many small concurrent database calls with one batched query.
 
 ```csharp
 using FlowSync;
@@ -301,5 +298,3 @@ public async Task<UserInfo?> GetUserInfoAsync(int userId)
 ```
 
 All callers in the same batch receive the same dictionary instance and read their own entry by `userId`.
-The key benefit is query coalescing: one batched query per window instead of N per-caller queries.
-This improvement is transparent for callers and does not affect their business logic.
